@@ -259,7 +259,7 @@ const plural = (n,a,b,c) => { const m=n%10, h=n%100; return n+' '+(h>=11&&h<=14?
 const catSort = (a,b)=>{ const ia=HEALTH_ORDER.indexOf(a), ib=HEALTH_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b,'ru'); };
 
 // ===================== СОСТОЯНИЕ =====================
-const S = {stack:[], sheet:null, toast:'', q:'', labView:'chart', real:[], local:[], people:{}, events:[], ev:null, calMonth:today.slice(0,7), calDay:today, caps:{db:null,assets:null,sample:null,images:false,ready:false}, busy:{}};
+const S = {stack:[], sheet:null, toast:'', q:'', labView:'chart', real:[], local:[], payments:[], payCat:'', people:{}, events:[], ev:null, calMonth:today.slice(0,7), calDay:today, caps:{db:null,assets:null,sample:null,images:false,ready:false}, busy:{}};
 const $ = s=>document.querySelector(s);
 const records = () => [...S.local, ...S.real];
 const filed = () => records().filter(r=>r.status==='filed');
@@ -285,6 +285,7 @@ function applyData(j){
   S.real=(j.records||[]).map(r=>({...r, photoUrl:r.photoUrl||driveThumb(r.photo), fileUrl:r.fileUrl||driveView(r.file)}));
   S.people={}; (j.people||[]).forEach(p=>{ S.people[p.id]={photo:p.photo||'', photoUrl:p.photoUrl||driveThumb(p.photo), born:p.born||''}; });
   S.events=(j.events||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  S.payments=(j.payments||[]).map(p=>({...p, amount:(p.amount===''||p.amount==null)?null:Number(p.amount)}));
   S.caps.db=true; S.caps.ready=true; S.loadedAt=j.generated||''; render();
 }
 async function load(quiet){
@@ -407,14 +408,70 @@ function search(q){
   return {recs, labs:ls};
 }
 
+
+// ===================== ПЛАТЕЖИ (из почты и бота) =====================
+if(typeof driveView==='undefined'){ window.driveView = id => id ? 'https://drive.google.com/file/d/'+id+'/view' : ''; }
+const PAY_C = {'ЖКХ':'var(--c-home)','Страховки':'var(--c-ins)','Чеки покупок':'var(--c-tech)','Подписки':'var(--c-photo)','Путешествия':'var(--c-docs)','Машина':'var(--c-car)','Связь и интернет':'var(--c-tech)','Налоги':'var(--c-health)','Досуг':'var(--c-photo)','Выписки':'var(--ink3)','Медицина':'var(--c-health)'};
+const payC = c => PAY_C[c] || 'var(--ink3)';
+const MONTHS_G = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MONTHS_I = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const fmtRub = n => (n==null||n===''||isNaN(n)||Number(n)===0) ? '' : Number(n).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₽';
+const payAll = () => S.payments.filter(p=>!S.payCat || p.category===S.payCat);
+const payTitle = p => { if(p.category==='ЖКХ' && p.kind==='квитанция') return 'Свет и мусор · '+(p.period||''); if(/НОВАТЭК/i.test(p.payee||'')) return 'Газ · НОВАТЭК'; if(p.kind==='выписка') return 'Выписка '+(p.payee||'')+(p.card?' *'+p.card:''); return p.payee || p.kind || 'Платёж'; };
+const paySub = p => [p.category, p.items || p.period || p.number || p.kind].filter(Boolean).join(' · ');
+function payRow(p){ return `<button class="row" data-payment="${p.id}">${dot(payC(p.category))}<div class="d num">${fmtShort(p.date)}</div><div class="t"><div class="n">${esc(payTitle(p))}</div><div class="s">${esc(paySub(p))}</div></div><div class="r"><b class="num">${fmtRub(p.amount)||''}</b>${p.files?.length?`<div>${plural(p.files.length,'файл','файла','файлов')}</div>`:''}</div></button>`; }
+function paySum(ps){ return ps.reduce((a,p)=>a+(Number(p.amount)||0),0); }
+function payChips(){ const cats=[...new Set(S.payments.map(p=>p.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
+  return `<div class="tags">${cats.map(c=>`<button class="tag c ${S.payCat===c?'':''}" style="--c:${payC(c)};${S.payCat===c?'outline:2px solid currentColor':''}" data-paycat="${esc(c)}">${esc(c)}</button>`).join('')}${S.payCat?`<button class="tag" data-paycat="">Все</button>`:''}</div>`; }
+function paySearch(q){ const s=q.trim().toLowerCase(); if(s.length<2) return []; const words=s.split(/\s+/); return payAll().filter(p=>{ const t=[p.payee,p.items,p.category,p.kind,p.period,p.number,p.address,p.subject,p.account,p.status,p.date,fmtRub(p.amount)].join(' ').toLowerCase(); return words.every(w=>t.includes(w)); }).sort((a,b)=>String(b.date).localeCompare(String(a.date))); }
+function paySearchBlock(ph){ const hits=S.q?paySearch(S.q):[];
+  return `<div class="search" role="search">${I.search}<input id="q" type="search" placeholder="${ph}" autocomplete="off" enterkeyhint="search" value="${esc(S.q)}">${S.q?`<button class="x" data-act="clearq">Очистить</button>`:''}</div>${S.q?(hits.length?`<div class="note">${plural(hits.length,'платёж','платежа','платежей')} · ${fmtRub(paySum(hits))}</div><div class="list">${hits.slice(0,80).map(payRow).join('')}</div>`:`<div class="note">Ничего не нашлось.</div>`):''}`; }
+function payByPayee(ps){ const by={}; ps.forEach(p=>{ (by[p.payee]=by[p.payee]||[]).push(p); });
+  const y12=new Date(new Date(today).setFullYear(new Date(today).getFullYear()-1)).toISOString().slice(0,10);
+  return Object.entries(by).map(([payee,it])=>{ const last=it.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]; const yr=it.filter(p=>p.date>=y12); const months=new Set(it.map(p=>String(p.date).slice(0,7))).size; return {payee, n:it.length, sum:paySum(it), year:paySum(yr), perMonth: yr.length? paySum(yr)/12 : 0, avg: it.length? paySum(it)/months : 0, last}; }).sort((a,b)=>b.year-a.year || b.sum-a.sum); }
+function payeesBlock(ps, title){ const rows=payByPayee(ps); if(!rows.length) return '';
+  const yearTotal=rows.reduce((a,x)=>a+x.year,0);
+  return `<div class="sect"><h2>${title} <small>${rows.length}</small></h2>${yearTotal?`<div class="note">За последние 12 месяцев ${fmtRub(yearTotal)} · в среднем ${fmtRub(yearTotal/12)} в месяц</div>`:''}<div class="list">${rows.map(x=>`<button class="row" data-payee="${esc(x.payee)}"><div class="t"><div class="n">${esc(x.payee)}</div><div class="s">${plural(x.n,'платёж','платежа','платежей')} · последний ${fmtShort(x.last.date)}${x.last.items?' · '+esc(x.last.items.slice(0,30)):''}</div></div><div class="r"><b class="num">${x.year?fmtRub(x.year):fmtRub(x.sum)}</b><div>${x.year?'≈ '+fmtRub(Math.round(x.perMonth))+'/мес':'всего'}</div></div>${I.chev}</button>`).join('')}</div></div>`; }
+function payeeScreen(v){ const ps=S.payments.filter(p=>p.payee===v.payee).sort((a,b)=>String(b.date).localeCompare(String(a.date))); const x=payByPayee(ps)[0]||{};
+  const years=[...new Set(ps.map(p=>String(p.date).slice(0,4)))].sort().reverse();
+  return {title:v.payee, sub:`${plural(ps.length,'платёж','платежа','платежей')} · всего ${fmtRub(x.sum)}`, small:true, body:`
+  <div class="card"><div class="verdict"><div class="big num">${fmtRub(Math.round(x.perMonth||x.avg||0))}</div><div style="color:var(--ink2)">${x.year?'в месяц, по последним 12 месяцам':'в среднем за месяц с платежами'}</div></div>
+  <dl class="kv">${years.map(y=>`<dt>${y}</dt><dd class="num">${fmtRub(paySum(ps.filter(p=>String(p.date).startsWith(y))))} · ${plural(ps.filter(p=>String(p.date).startsWith(y)).length,'платёж','платежа','платежей')}</dd>`).join('')}</dl></div>
+  <div class="sect"><h2>Все платежи</h2><div class="list">${ps.map(payRow).join('')}</div></div>`}; }
+function payScreen(v){ const ps=payAll(); const years=[...new Set(ps.map(p=>String(p.date||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  const unpaid=S.payments.filter(p=>/не оплач|долг/i.test(p.status||'')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const due=S.payments.filter(p=>p.due && p.due>=today).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+  return {title:'Платежи', sub:S.payments.length?`${plural(S.payments.length,'запись','записи','записей')} из почты и бота`:'', body:`${paySearchBlock('Найти платёж: кому, за что, сумма')}${S.q?'':`
+  ${unpaid.length?`<div class="sect"><h2>Не оплачено</h2><div class="list">${unpaid.slice(0,5).map(payRow).join('')}</div></div>`:''}
+  ${due.length?`<div class="sect"><h2>Ближайшие сроки</h2><div class="list">${due.map(p=>`<button class="row" data-payment="${p.id}">${dot(payC(p.category))}<div class="d num">${fmtShort(p.due)}</div><div class="t"><div class="n">${esc(payTitle(p))}</div><div class="s">${esc(paySub(p))}</div></div><div class="r">${left(p.due)}</div></button>`).join('')}</div></div>`:''}
+  <div class="sect"><h2>Категории</h2>${payChips()}</div>
+  ${S.payCat?payeesBlock(ps, S.payCat==='Подписки'?'Сервисы':'Кому платим'):''}
+  <div class="sect"><h2>По годам${S.payCat?` <small>${esc(S.payCat)}</small>`:''}</h2><div class="list">${years.length?years.map(y=>{ const it=ps.filter(p=>String(p.date).startsWith(y)); return `<button class="row" data-payyear="${y}"><div class="t"><div class="n">${y}</div><div class="s">${plural(it.length,'запись','записи','записей')}</div></div><div class="r"><b class="num">${fmtRub(paySum(it))}</b></div>${I.chev}</button>`; }).join(''):emptyBlock('Пока пусто','Платежи появятся из почты и из фото квитанций в боте')}</div></div>`}`}; }
+function payYearScreen(v){ const ps=payAll().filter(p=>String(p.date).startsWith(v.year)); const months=[...new Set(ps.map(p=>String(p.date).slice(5,7)))].sort().reverse();
+  const cats=[...new Set(ps.map(p=>p.category))].map(c=>({c, n:ps.filter(p=>p.category===c).length, s:paySum(ps.filter(p=>p.category===c))})).sort((a,b)=>b.s-a.s);
+  return {title:v.year, sub:`${plural(ps.length,'запись','записи','записей')} · ${fmtRub(paySum(ps))}`, small:true, body:`${paySearchBlock('Найти в '+v.year)}${S.q?'':`
+  <div class="sect"><h2>Категории</h2>${payChips()}</div>
+  <div class="sect"><h2>По месяцам</h2><div class="list">${months.map(m=>{ const it=ps.filter(p=>String(p.date).slice(5,7)===m); return `<button class="row" data-paymonth="${v.year}-${m}"><div class="t"><div class="n">${MONTHS_I[+m-1]}</div><div class="s">${plural(it.length,'запись','записи','записей')}${S.payCat?'':' · '+[...new Set(it.map(p=>p.category))].slice(0,3).join(', ')}</div></div><div class="r"><b class="num">${fmtRub(paySum(it))}</b></div>${I.chev}</button>`; }).join('')}</div></div>
+  ${S.payCat?'':`<div class="sect"><h2>Итого по категориям</h2><div class="list">${cats.map(x=>`<button class="row" data-paycat="${esc(x.c)}" data-stay="1">${dot(payC(x.c))}<div class="t"><div class="n">${esc(x.c)}</div><div class="s">${plural(x.n,'запись','записи','записей')}</div></div><div class="r"><b class="num">${fmtRub(x.s)}</b></div></button>`).join('')}</div></div>`}`}`}; }
+function payMonthScreen(v){ const [y,m]=v.ym.split('-'); const ps=payAll().filter(p=>String(p.date).startsWith(v.ym)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  return {title:`${MONTHS_I[+m-1]} ${y}`, sub:`${plural(ps.length,'запись','записи','записей')} · ${fmtRub(paySum(ps))}${S.payCat?' · '+S.payCat:''}`, small:true, body:`${paySearchBlock('Найти в этом месяце')}${S.q?'':`${payChips()}<div class="list">${ps.map(payRow).join('')}</div>`}`}; }
+function paymentScreen(v){ const p=S.payments.find(x=>x.id===v.id); if(!p) return {title:'Платёж', body:emptyBlock('Нет записи','')};
+  const kv=[['Кому',p.payee],['Категория',p.category],['За что',p.items],['Период',p.period],['Адрес',p.address],['Лицевой счёт',p.account],['Номер',p.number],['Статус',p.status],['Срок',p.due?fmtD(p.due):''],['Пени',p.penalty?fmtRub(p.penalty):''],['Счётчик',p.meter],['ИНН',p.inn],['Откуда',p.source==='почта'?'письмо'+(p.subject?' «'+p.subject+'»':''):(p.source||'')],['Уверенность',p.confidence==='low'?'низкая, проверьте по файлу':'']].filter(x=>x[1]);
+  const same=S.payments.filter(x=>x.id!==p.id && x.payee===p.payee).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8);
+  return {title:payTitle(p), sub:fmtD(p.date), small:true, body:`
+  <div class="card"><div class="verdict"><div class="big num">${fmtRub(p.amount)||'—'}</div><div style="color:var(--ink2)">${esc(p.kind||'')}</div></div>
+  <dl class="kv">${kv.map(([k,val])=>`<dt>${k}</dt><dd>${esc(val)}</dd>`).join('')}</dl>
+  ${p.files?.length?`<div class="tags">${p.files.map(f=>`<a class="tag link" href="${esc(f.url||driveView(f.id))}" target="_blank" rel="noopener">${esc(/\.pdf$/i.test(f.name)?'Открыть PDF':f.name.replace(/^\d{4}-\d{2}-\d{2} /,'').slice(0,40))}</a>`).join('')}</div>`:''}</div>
+  ${same.length?`<div class="sect"><h2><button data-payee="${esc(p.payee)}" style="font:inherit">Та же услуга <small>${esc(p.payee)} ›</small></button></h2><div class="list">${same.map(payRow).join('')}</div></div>`:''}`}; }
+
 // ===================== РЕНДЕР =====================
 function render(){
   const v = S.stack[S.stack.length-1];
-  const scr = ({area:areaScreen, person:personScreen, section:sectionScreen, list:listScreen, record:recordScreen, labs:labsScreen, lab:labScreen, inbox:inboxScreen, car:carScreen, calendar:calendarScreen, event:eventScreen, evform:eventFormScreen})[v?.kind] || homeScreen;
+  const scr = ({area:areaScreen, person:personScreen, section:sectionScreen, list:listScreen, record:recordScreen, labs:labsScreen, lab:labScreen, inbox:inboxScreen, car:carScreen, calendar:calendarScreen, event:eventScreen, evform:eventFormScreen, pay:payScreen, payyear:payYearScreen, paymonth:payMonthScreen, payment:paymentScreen, payee:payeeScreen})[v?.kind] || homeScreen;
   const {title, sub, body, small} = scr(v);
   $('#top').innerHTML = (v?`<button class="back" aria-label="Назад" data-act="back">${I.back}</button>`:'') + `<div style="flex:1;min-width:0"><h1 class="${small?'small':''}">${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
   $('#screen').innerHTML = body;
-  $('#fab').hidden = ['record','lab','labs','calendar','event','evform'].includes(v?.kind);
+  $('#fab').hidden = ['record','lab','labs','calendar','event','evform','pay','payyear','paymonth','payment','payee'].includes(v?.kind);
   paintOverlays();
 }
 function paintOverlays(){
@@ -443,6 +500,7 @@ function homeScreen(){
   <div class="people">${PEOPLE.map(p=>`<button class="pp" data-person="${p.id}">${avatar(p)}<div class="n">${p.name}</div></button>`).join('')}</div>
   <div class="list">
     ${(()=>{ const up=upcoming(); const n=up[0]; return `<button class="row" data-cal="1">${dot(SECT_C.cal)}<div class="t"><div class="n">Календарь</div><div class="s">${n?`${fmtShort(n.date)}${n.time?' '+n.time:''} · ${esc(n.title)}${n.person?' · '+personName(n.person):''}`:'приёмы, записи, напоминания'}</div></div>${up.length?`<div class="r"><b>${up.length}</b></div>`:''}${I.chev}</button>`; })()}
+    ${(()=>{ const n=S.payments.length; if(!n) return ''; const un=S.payments.filter(p=>/не оплач|долг/i.test(p.status||'')); const last=S.payments.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]; return `<button class="row" data-pay="1">${dot('var(--c-ins)')}<div class="t"><div class="n">Платежи</div><div class="s">${un.length?`не оплачено: ${esc(payTitle(un[0]))} · ${fmtRub(un[0].amount)}`:(last?`${fmtShort(last.date)} · ${esc(payTitle(last))}`:'квитанции, чеки, полисы')}</div></div><div class="r"><b>${n}</b></div>${I.chev}</button>`; })()}
     ${AREAS.map(a=>`<button class="row" data-area="${a.id}">${dot(a.c)}<div class="t"><div class="n">${a.name}</div><div class="s">${a.about}</div></div>${cnt(a.id)?`<div class="r"><b>${cnt(a.id)}</b></div>`:''}${I.chev}</button>`).join('')}
   </div>
   <div class="status">${!KEY ? (matchMedia('(display-mode: standalone)').matches ? 'Значок добавлен без ключа. Удалите его и добавьте на экран «Домой» заново, открыв личную ссылку в Safari.' : 'Откройте приложение по своей личной ссылке.') : S.caps.ready ? (S.offline ? 'Нет связи: показано сохранённое на телефоне' : 'База подключена, фото распознаются') : 'Подключаю базу…'}</div>`}`};
@@ -669,9 +727,15 @@ function addSheet(){
 // ===================== СОБЫТИЯ =====================
 let avatarFor = ''; let pageFor = '';
 document.addEventListener('click', async e=>{
-  const b = e.target.closest('[data-area],[data-person],[data-section],[data-list],[data-record],[data-lab],[data-labs],[data-car],[data-act],[data-file],[data-remove],[data-labview],[data-go-inbox],[data-avatar],[data-addpage],[data-cal],[data-event],[data-newevent],[data-saveevent],[data-delevent],[data-share],[data-copy],[data-calnav],[data-calday]');
+  const b = e.target.closest('[data-area],[data-person],[data-section],[data-list],[data-record],[data-lab],[data-labs],[data-car],[data-act],[data-file],[data-remove],[data-labview],[data-go-inbox],[data-avatar],[data-addpage],[data-cal],[data-event],[data-newevent],[data-saveevent],[data-delevent],[data-share],[data-copy],[data-calnav],[data-calday],[data-pay],[data-payyear],[data-paymonth],[data-payment],[data-paycat],[data-payee]');
   if(!b) return;
   if(b.dataset.calnav){ S.calMonth=b.dataset.calnav; render(); return; }
+  if(b.dataset.pay){ S.payCat=''; go({kind:'pay'}); return; }
+  if(b.dataset.payyear){ go({kind:'payyear', year:b.dataset.payyear}); return; }
+  if(b.dataset.paymonth){ go({kind:'paymonth', ym:b.dataset.paymonth}); return; }
+  if(b.dataset.payment){ go({kind:'payment', id:b.dataset.payment}); return; }
+  if(b.dataset.payee){ go({kind:'payee', payee:b.dataset.payee}); return; }
+  if(b.dataset.paycat!==undefined){ S.payCat = (S.payCat===b.dataset.paycat && !b.dataset.stay) ? '' : b.dataset.paycat; render(); return; }
   if(b.dataset.calday){ S.calDay=b.dataset.calday; S.calMonth=b.dataset.calday.slice(0,7); const scr=$('#screen'); const pos=scr.scrollTop; render(); $('#screen').scrollTop=pos; return; }
   if(b.dataset.share){ await shareRecord(b.dataset.share); return; }
   if(b.dataset.copy){ await copyRecord(b.dataset.copy); return; }
