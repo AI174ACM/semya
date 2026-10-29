@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Семья</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#FBFAF7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101010" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="fonts/golos-local.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Семья">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+/* Направление «Семейный альбом»: бумага, крупный шрифт, тонкие линии, портреты как главный элемент. Один акцент (оранжевый) только на действии, красный только для «вне нормы». */
+:root{
+  --paper:#FBFAF7; --surface:#FFFFFF; --ink:#151412; --ink2:#6E6A63; --ink3:#A8A39A; --hair:#E6E2DB; --fill:#F1EEE8;
+  --accent:#F26A1B; --accent-ink:#B9460A; --alarm:#C8102E; --band:rgba(242,106,27,.10);
+  /* цвета людей и разделов: метки, кольца, точки календаря; фон ими не красим */
+  --c-anton:#3566B8; --c-wife:#C04A7B; --c-child1:#D9893B; --c-child2:#1E8A58;
+  --c-docs:#3566B8; --c-health:#D64B3B; --c-ins:#B8862B; --c-labs:#1E8A58; --c-cal:#F26A1B;
+  --c-home:#B8862B; --c-car:#5C6B7A; --c-tech:#2A8C8C; --c-photo:#7B6FA8;
+  --font:"Golos Text",-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#101010; --surface:#1A1917; --ink:#F2EFE9; --ink2:#A39E95; --ink3:#5E5A53; --hair:#2A2825; --fill:#23211E;
+  --accent:#F7823A; --accent-ink:#FFA06A; --alarm:#FF4D5E; --band:rgba(247,130,58,.16); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#101010; --surface:#1A1917; --ink:#F2EFE9; --ink2:#A39E95; --ink3:#5E5A53; --hair:#2A2825; --fill:#23211E;
+  --accent:#F7823A; --accent-ink:#FFA06A; --alarm:#FF4D5E; --band:rgba(247,130,58,.16); color-scheme:dark }
+
+html,body{height:100%}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.4;font-feature-settings:"tnum" 0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+a{color:var(--accent-ink);text-decoration:none;touch-action:manipulation}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.num{font-variant-numeric:tabular-nums}
+.app{max-width:440px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;position:relative}
+@media (min-width:600px){ .app{min-height:0;height:min(880px,100vh);margin-block:max(0px,calc((100vh - 880px)/2));border-radius:44px;overflow:hidden;background:var(--paper);outline:1px solid var(--hair)} }
+
+.top{display:flex;align-items:flex-end;gap:10px;padding:22px 2px 12px;min-height:72px}
+.top h1{font-size:38px;font-weight:800;flex:1;min-width:0}
+.top h1.small{font-size:28px}
+.top .sub{font-size:15px;color:var(--ink2);font-weight:500;margin-top:4px;letter-spacing:0}
+.back{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;color:var(--ink);flex:none;margin:0 0 2px -8px;background:var(--fill)}
+.back:active{transform:scale(.94)}
+.back svg{width:22px;height:22px}
+.screen{flex:1;overflow-y:auto;padding:0 0 110px;display:flex;flex-direction:column;gap:26px;overscroll-behavior:contain}
+.note{color:var(--ink2);font-size:15px;line-height:1.45;padding:0 2px}
+.sect{display:flex;flex-direction:column;gap:10px}
+.sect h2{font-size:22px;padding:0 2px}
+.sect h2 small{font-size:15px;color:var(--ink3);font-weight:500;margin-left:8px;letter-spacing:0}
+
+.search{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:12px 14px}
+.search svg{width:20px;height:20px;color:var(--ink3);flex:none}
+.search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:17px;color:var(--ink)}
+.search input::placeholder{color:var(--ink3)}
+.search .x{color:var(--ink2);font-size:15px;font-weight:500}
+
+/* портреты */
+.people{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:2px 0}
+.pp{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0;border-radius:16px}
+.pp:active .av{transform:scale(.96)}
+.av{border-radius:50%;background:var(--fill);display:grid;place-items:center;overflow:hidden;flex:none;color:var(--ink3);transition:transform .12s ease-out}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av svg{width:58%;height:58%}
+.av.ring{box-shadow:0 0 0 3px var(--paper),0 0 0 5.5px var(--c,var(--hair))}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--c,var(--ink3));flex:none}
+.dot.sq{border-radius:3px;transform:rotate(45deg);width:9px;height:9px;margin:0 1px}
+.row .dot{margin-right:2px}
+.year.tint{color:var(--c,var(--ink3));opacity:.55}
+.tag.c{color:var(--c,var(--ink2));background:color-mix(in srgb,var(--c,var(--ink2)) 12%,transparent)}
+.pp .av{width:76px;height:76px}
+.av.big{width:88px;height:88px}
+.avbtn{flex:none;width:88px;height:88px;display:block;border-radius:50%;margin-left:6px}
+#ptr{position:absolute;left:0;right:0;top:0;text-align:center;font-size:14px;color:var(--ink2);padding-top:env(safe-area-inset-top,0px);height:0;overflow:hidden;transition:height .18s ease-out;pointer-events:none;z-index:3}
+#ptr.on{height:44px;line-height:44px}
+.pp .n{font-weight:600;font-size:15px}
+.pp .c{font-size:13px;color:var(--ink3);margin-top:-6px}
+
+/* списки с тонкими линиями */
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:14px;padding:16px 2px;width:100%;border-bottom:1px solid var(--hair);min-height:64px;transition:background .1s}
+.row:active{background:var(--fill);border-radius:12px}
+.row .t{flex:1;min-width:0}
+.row .n{font-weight:600;font-size:19px;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .s{font-size:15px;color:var(--ink2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .r{flex:none;text-align:right;color:var(--ink3);font-size:15px;font-weight:500}
+.row .r b{color:var(--ink);font-weight:700;font-size:19px}
+.row.dim .n{color:var(--ink3);font-weight:500}
+.row .d{flex:none;width:58px;font-size:14px;color:var(--ink2);font-weight:500;line-height:1.25}
+.row .th{width:52px;height:52px;border-radius:10px;background:var(--fill);overflow:hidden;flex:none;display:grid;place-items:center;color:var(--ink3)}
+.row .th img{width:100%;height:100%;object-fit:cover}
+.row .th svg{width:24px;height:24px}
+.chev{width:18px;height:18px;color:var(--ink3);flex:none}
+.year{font-size:34px;font-weight:800;color:var(--ink3);letter-spacing:-.03em;padding:14px 2px 0;line-height:1}
+
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.card h3{font-size:19px}
+.photo{width:100%;max-width:100%;max-height:72vh;border-radius:14px;background:var(--fill);display:block;object-fit:contain;border:1px solid var(--hair)}
+.photo.ph{display:grid;place-items:center;color:var(--ink3);font-size:15px;aspect-ratio:4/3}
+a.photo-link{display:block}
+.text{font-size:17px;line-height:1.5}
+.kv{display:grid;grid-template-columns:minmax(104px,auto) 1fr;gap:10px 16px;font-size:15px;margin:0;line-height:1.4}
+.kv dt{color:var(--ink2)}.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.ocr{font-size:14px;color:var(--ink2);background:var(--fill);border-radius:12px;padding:12px 14px;white-space:pre-wrap;max-height:200px;overflow:auto;line-height:1.45}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;border-radius:999px;padding:5px 12px;font-size:14px;font-weight:600;background:var(--fill);color:var(--ink2)}
+.tag.link{color:var(--accent-ink)}
+.tag.alarm{background:rgba(200,16,46,.08);color:var(--alarm)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border-radius:14px;padding:13px 18px;font-weight:600;font-size:17px;background:var(--fill);display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:transform .1s ease-out}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.wide{width:100%}
+.btn.sm{padding:8px 14px;font-size:15px;border-radius:11px}
+.btn:disabled{opacity:.4;cursor:default}
+.btn svg{width:20px;height:20px}
+.empty{padding:36px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;border:1px dashed var(--hair);border-radius:18px}
+.empty .t{font-weight:600;font-size:19px}
+.empty .s{color:var(--ink2);font-size:15px;max-width:30ch;line-height:1.45}
+.verdict{display:flex;align-items:baseline;gap:12px}
+.verdict .big{font-size:48px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.verdict .w{font-size:17px;color:var(--ink2)}
+.out{color:var(--alarm)}
+.delta.up::before{content:"↑ "}.delta.down::before{content:"↓ "}
+.chart{position:relative;width:100%}
+.chart svg{width:100%;height:auto;display:block}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font-size:13px;padding:6px 9px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-115%);display:none}
+.tbl{width:100%;border-collapse:collapse;font-size:16px}
+.tbl th{font-weight:500;color:var(--ink3);text-align:left;padding:6px 2px;border-bottom:1px solid var(--hair);font-size:13px}
+.tbl td{padding:11px 2px;border-bottom:1px solid var(--hair);vertical-align:top;line-height:1.3}
+.tbl td.n{text-align:right;font-weight:700;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.seg{display:flex;gap:4px;background:var(--fill);border-radius:12px;padding:3px}
+.seg button{flex:1;text-align:center;padding:9px;border-radius:10px;font-size:15px;font-weight:600;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:13px;color:var(--ink2);font-weight:500}
+.field input,.field select{font:inherit;font-size:16px;color:var(--ink);background:var(--fill);border:0;border-radius:11px;padding:11px 12px;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--hair);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .spin{animation:none} .av,.btn,.back{transition:none} }
+.status{font-size:13px;color:var(--ink3);padding:0 2px;font-weight:500}
+/* календарь */
+.cal{background:var(--surface);border:1px solid var(--hair);border-radius:18px;padding:14px 12px 10px}
+.cal .hd{display:flex;align-items:center;justify-content:space-between;padding:0 4px 10px}
+.cal .hd b{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.cal .nav{width:36px;height:36px;border-radius:18px;display:grid;place-items:center;color:var(--ink);background:var(--fill)}
+.cal .nav svg{width:18px;height:18px}
+.cal .wd{display:grid;grid-template-columns:repeat(7,1fr);font-size:12px;color:var(--ink3);text-align:center;font-weight:500;padding-bottom:4px}
+.cal .wd span:nth-child(n+6){color:var(--alarm);opacity:.8}
+.cal .days{display:grid;grid-template-columns:repeat(7,1fr);row-gap:2px}
+.cal .day{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:12px;font-size:16px;font-weight:500;position:relative}
+.cal .day .n{width:34px;height:34px;border-radius:17px;display:grid;place-items:center}
+.cal .day.other .n{color:var(--ink3)}
+.cal .day.we .n{color:var(--alarm)}
+.cal .day.today .n{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cal .day.sel .n{background:var(--ink);color:var(--paper);box-shadow:none}
+.cal .day.sel .n{background:var(--accent);color:#fff}
+.cal .day:active{background:var(--fill)}
+.inboxbar{display:flex;align-items:center;gap:14px;background:var(--ink);color:var(--paper);border-radius:16px;padding:14px 18px;width:100%}
+.inboxbar b{font-size:17px}
+.inboxbar .s{font-size:14px;opacity:.7}
+.inboxbar .chev{color:var(--paper);opacity:.6}
+
+.fab{position:absolute;right:16px;bottom:30px;height:58px;padding:0 24px 0 20px;border-radius:29px;background:var(--accent);color:#fff;display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;box-shadow:0 10px 28px rgba(242,106,27,.35);transition:transform .1s ease-out}
+.fab:active{transform:scale(.96)}
+@media (max-width:599px){ .fab{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(30px + env(safe-area-inset-bottom,0px))} }
+.fab svg{width:22px;height:22px}
+.fab[hidden]{display:none}
+.sheet{position:absolute;inset:0;background:rgba(20,18,16,.45);display:flex;align-items:flex-end;z-index:20}
+@media (max-width:599px){ .sheet{position:fixed} }
+.sheet .in{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-height:88dvh;overflow:auto;padding:18px 18px calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.sheet h3{font-size:24px;margin-bottom:6px}
+.opt{display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;background:var(--fill);width:100%}
+.opt:active{transform:scale(.985)}
+.opt .ic{width:44px;height:44px;border-radius:12px;background:var(--surface);color:var(--ink);display:grid;place-items:center;flex:none}
+.opt .ic svg{width:22px;height:22px}
+.opt .n{font-weight:600;font-size:17px}.opt .s{font-size:14px;color:var(--ink2);margin-top:2px}
+.toast{position:absolute;left:16px;right:16px;bottom:104px;background:var(--ink);color:var(--paper);border-radius:12px;padding:13px 16px;font-size:15px;z-index:30;font-weight:500}
+@media (max-width:599px){ .toast{position:fixed} }
+@media (hover:hover) and (pointer:fine){ .row:hover{background:var(--fill);border-radius:12px} .opt:hover,.btn:hover{filter:brightness(.97)} }
+@media (pointer:coarse){ .search input,.field input,.field select{font-size:16px} }
+</style>
+
+<div class="app" id="app">
+  <div class="top" id="top"></div>
+  <div class="screen" id="screen"></div>
+  <button class="fab" id="fab" aria-label="Добавить документ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Добавить
+  </button>
+  <input id="pick-cam" type="file" accept="image/*" capture="environment" hidden>
+  <input id="pick-gal" type="file" accept="image/*,application/pdf" multiple hidden>
+  <input id="pick-avatar" type="file" accept="image/*" hidden>
+</div>
+
+<script>
+// ===================== ЗНАКИ =====================
+const I = {
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>',
+  person:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8.5" r="4"/><path d="M4 20.5c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 16l5-5 4 4 3-3 4 4"/><circle cx="16" cy="9" r="1.5"/></svg>',
+};
+
+// ===================== СТРУКТУРА =====================
+const PEOPLE = [
+  {id:'anton', name:'Антон', c:'var(--c-anton)'},
+  {id:'wife',  name:'Ксения', c:'var(--c-wife)'},
+  {id:'child1',name:'Даша', c:'var(--c-child1)'},
+  {id:'child2',name:'Саша', c:'var(--c-child2)'},
+];
+const AREAS = [
+  {id:'home',  name:'Дом',     c:'var(--c-home)', about:'квартира, квитанции, страховка, ремонт', groups:['Документы на квартиру','Квитанции','Страховка','Счётчики','Ремонт','Договоры и услуги']},
+  {id:'car',   name:'Машина',  c:'var(--c-car)', about:'Li L7: документы, ОСАГО, ТО, штрафы', groups:['Документы','Страховка','ТО и ремонт','Штрафы']},
+  {id:'tech',  name:'Техника', c:'var(--c-tech)', about:'чеки и гарантии'},
+  {id:'photo', name:'Фото',    c:'var(--c-photo)', about:'по годам и поездкам', groups:['По годам','Поездки']},
+];
+const SECT_C = {docs:'var(--c-docs)', health:'var(--c-health)', insurance:'var(--c-ins)', labs:'var(--c-labs)', cal:'var(--c-cal)'};
+const CAT_PAL = ['#D64B3B','#3566B8','#1E8A58','#B8862B','#7B6FA8','#2A8C8C','#C04A7B','#5C6B7A'];
+function catColor(c){ if(c==='Анализы') return '#D64B3B'; let h=0; for(const ch of String(c)) h=(h*31+ch.charCodeAt(0))>>>0; return CAT_PAL[1+ (h%(CAT_PAL.length-1))]; }
+const pColor = id => PEOPLE.find(p=>p.id===id)?.c || 'var(--c-cal)';
+const dot = (c, sq=false) => `<span class="dot ${sq?'sq':''}" style="--c:${c}"></span>`;
+const DOC_TYPES = ['Паспорт','Загранпаспорт','СНИЛС','ИНН','Полис ОМС','Полис ДМС','Водительское удостоверение','Свидетельство о рождении','Свидетельство о браке','Диплом','Аттестат','Военный билет','Трудовая книжка','Другое'];
+const HEALTH_ORDER = ['Анализы','УЗИ','ФГС и эндоскопия','МРТ и КТ','Рентген','ЭКГ'];
+const CARS = [{id:'car1', name:'Li L7'}];
+const today = new Date().toISOString().slice(0,10);
+const MON = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const fmtD = s => { if(!s) return ''; const [y,m,d]=String(s).split('-'); return d&&m ? `${d}.${m}.${y}` : s; };
+const fmtShort = s => { if(!s) return ''; const [y,m,d]=String(s).split('-'); return d&&m ? `${+d} ${MON[+m-1]}` : s; };
+const fmtMY = s => { if(!s) return ''; const [y,m]=String(s).split('-'); return m ? `${MON[+m-1]} ${y}` : y; };
+const fmtN = n => (n==null||isNaN(n)) ? '—' : Number(n).toLocaleString('ru-RU',{maximumFractionDigits:3});
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const daysTo = s => s ? Math.round((new Date(s)-new Date(today))/86400000) : null;
+const left = s => { const d=daysTo(s); if(d==null) return ''; if(d<0) return 'истёк'; if(d<31) return `${d} дн.`; if(d<365) return `${Math.round(d/30)} мес.`; return `${(d/365).toFixed(1).replace('.',',')} г.`; };
+const personName = id => PEOPLE.find(p=>p.id===id)?.name || CARS.find(c=>c.id===id)?.name || '';
+/* Запись относится к человеку, если он владелец (person) или в списке застрахованных/участников (people) */
+const ofPerson = (r,id) => r.person===id || (Array.isArray(r.people) && r.people.includes(id));
+const isOut = l => (l.refLow!=null && l.value<l.refLow) || (l.refHigh!=null && l.value>l.refHigh);
+const plural = (n,a,b,c) => { const m=n%10, h=n%100; return n+' '+(h>=11&&h<=14?c:m===1?a:m>=2&&m<=4?b:c); };
+const catSort = (a,b)=>{ const ia=HEALTH_ORDER.indexOf(a), ib=HEALTH_ORDER.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib) || a.localeCompare(b,'ru'); };
+
+// ===================== СОСТОЯНИЕ =====================
+const S = {stack:[], sheet:null, toast:'', q:'', labView:'chart', real:[], local:[], people:{}, events:[], ev:null, calMonth:today.slice(0,7), calDay:today, caps:{db:null,assets:null,sample:null,images:false,ready:false}, busy:{}};
+const $ = s=>document.querySelector(s);
+const records = () => [...S.local, ...S.real];
+const filed = () => records().filter(r=>r.status==='filed');
+const inbox = () => records().filter(r=>r.status==='inbox');
+const labs = () => { const out=[]; for(const r of filed()){ if(!r.analytes?.length) continue; r.analytes.forEach((a,i)=>out.push({id:r.id+'_'+i, person:r.person||'', date:r.date||'', analyte:a.name, value:a.value, unit:a.unit||'', refLow:a.refLow??null, refHigh:a.refHigh??null, org:(r.org||'').split(' (')[0].split(',')[0], recordId:r.id})); } return out; };
+/* Навигация через историю браузера: системный жест «назад» в Safari и свайп от левого края возвращают на прошлый экран, а не закрывают приложение */
+function go(v){ S.stack.push(v); S.q=''; try{ history.pushState({n:S.stack.length},''); }catch(e){} render(); scrollTop(); }
+function back(){ const n=(history.state&&history.state.n)||0; if(n>0 && n===S.stack.length){ history.back(); } else { S.stack.pop(); S.q=''; render(); } }
+try{ history.replaceState({n:0},''); }catch(e){}
+window.addEventListener('popstate', ()=>{ const n=(history.state&&history.state.n)||0; if(S.stack.length>n){ S.stack.length=n; S.q=''; S.sheet=null; render(); } });
+function scrollTop(){ const s=$('#screen'); if(s) s.scrollTop=0; }
+function toast(m){ S.toast=m; paintOverlays(); clearTimeout(toast.t); toast.t=setTimeout(()=>{S.toast='';paintOverlays();},2400); }
+const avatar = (p, cls='') => { const ph = S.people[p.id]?.photoUrl; return `<span class="av ring ${cls}" style="--c:${p.c}">${ph?`<img src="${esc(ph)}" alt="">`:I.person}</span>`; };
+
+// ===================== ДАННЫЕ: таблица «Семья — база» через скрипт «Семья — данные» =====================
+const API = 'https://script.google.com/macros/s/AKfycbxdvpcx4uYC_52Z76sQe7_LqD8vQpj9bP3XvP-BqHQxQ1lwUXjZxJR964aUKulbgCyF/exec';
+const KEY = (()=>{ let k=''; try{ k=new URL(location.href).searchParams.get('k')||''; }catch(e){} if(k){ try{ localStorage.setItem('semya_k',k); }catch(e){} return k; } try{ return localStorage.getItem('semya_k')||''; }catch(e){ return ''; } })();
+async function apiGet(params){ const u=new URL(API); u.searchParams.set('k',KEY); for(const [k,v] of Object.entries(params||{})) u.searchParams.set(k,v); const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('http '+r.status); return r.json(); }
+async function apiPost(body){ const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({k:KEY,...body})}); if(!r.ok) throw new Error('http '+r.status); const j=await r.json(); if(j.error) throw new Error(j.error); return j; }
+const driveThumb = id => id ? 'https://drive.google.com/thumbnail?id='+id+'&sz=w1600' : '';
+const driveView = id => id ? 'https://drive.google.com/file/d/'+id+'/view' : '';
+function applyData(j){
+  S.real=(j.records||[]).map(r=>({...r, photoUrl:r.photoUrl||driveThumb(r.photo), fileUrl:r.fileUrl||driveView(r.file)}));
+  S.people={}; (j.people||[]).forEach(p=>{ S.people[p.id]={photo:p.photo||'', photoUrl:p.photoUrl||driveThumb(p.photo), born:p.born||''}; });
+  S.events=(j.events||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  S.caps.db=true; S.caps.ready=true; S.loadedAt=j.generated||''; render();
+}
+async function load(quiet){
+  if(!KEY){ S.caps.ready=true; render(); return; }
+  try{ const j=await apiGet(); if(j.error) throw new Error(j.error); try{ localStorage.setItem('semya_data', JSON.stringify(j)); }catch(e){} applyData(j); }
+  catch(e){ console.warn('load', e); S.caps.ready=true; S.offline=true; if(!quiet) toast('Нет связи с базой'); render(); }
+}
+(function boot(){ try{ const c=localStorage.getItem('semya_data'); if(c&&KEY) applyData(JSON.parse(c)); }catch(e){} load(true); })();
+const toB64 = f => new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.onerror=rej; fr.readAsDataURL(f); });
+/* Фото с телефона ужимаем до 2000 px по длинной стороне: быстрее уходит и распознаётся, для документа хватает */
+async function shrink(file){
+  if(!file.type.startsWith('image/') || file.size<900_000) return file;
+  try{ const bmp=await createImageBitmap(file); const k=Math.min(1, 2000/Math.max(bmp.width,bmp.height)); const c=document.createElement('canvas'); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.86)); return blob ? new File([blob], (file.name||'фото').replace(/\.\w+$/,'')+'.jpg', {type:'image/jpeg'}) : file; }
+  catch(e){ return file; }
+}
+
+// ===================== ПРИЁМ → БАЗА → РАСПОЗНАВАНИЕ =====================
+function ctxDefaults(){
+  const d={area:'', person:'', section:'', category:'', object:''};
+  for(const v of S.stack){ if(v.kind==='area') d.area=v.id; if(v.kind==='person'){ d.area='people'; d.person=v.id; } if(v.kind==='section') d.section=v.section; if(v.kind==='list'){ d.category=v.category; if(v.section) d.section=v.section; } if(v.kind==='car'){ d.area='car'; d.object=v.id; } }
+  return d;
+}
+async function ingest(files){
+  S.sheet=null; const ctx = ctxDefaults();
+  if(!KEY){ toast('Откройте приложение по личной ссылке'); return; }
+  for(const file of files){
+    const id = 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const rec = {...ctx, id, kind:'other', title: file.type.startsWith('image/') ? 'Фото' : (file.name||'Файл'), status:'inbox', createdAt:new Date().toISOString(), date:today, org:'', summary:'', recognized:false, source:'телефон', localUrl:URL.createObjectURL(file)};
+    S.local.unshift(rec); go({kind:'record', id}); S.busy[id]=true; render();
+    try{
+      const small = await shrink(file); const data = await toB64(small);
+      const j = await apiPost({action:'upload', data, mime:small.type||'application/octet-stream', name:small.name||file.name||('фото_'+today+'.jpg'), ctx});
+      const li = S.local.findIndex(r=>r.id===id); if(li>=0) S.local.splice(li,1);
+      const nr = {...j.record, localUrl:rec.localUrl, photoUrl:driveThumb(j.record.photo), fileUrl:driveView(j.record.file)};
+      S.real.unshift(nr); S.stack.forEach(v=>{ if(v.kind==='record'&&v.id===id) v.id=nr.id; }); delete S.busy[id]; S.busy[nr.id]=false;
+    }catch(e){ const r=S.local.find(x=>x.id===id); if(r) r.recogError='upload'; toast('Не удалось загрузить. Проверьте связь и попробуйте ещё раз.'); }
+    finally { delete S.busy[id]; render(); }
+  }
+}
+async function setAvatar(pid, file){
+  if(!KEY){ toast('Откройте приложение по личной ссылке'); return; }
+  try{ const small=await shrink(file); const data=await toB64(small); const j=await apiPost({action:'avatar', person:pid, data, mime:small.type||'image/jpeg'}); S.people[pid]={...(S.people[pid]||{}), photo:j.id, photoUrl:URL.createObjectURL(small)}; render(); toast('Фото сохранено'); load(true); }
+  catch(e){ toast('Не удалось сохранить фото'); }
+}
+function getRec(id){ return records().find(r=>r.id===id); }
+async function patch(id, data){
+  const loc = S.local.find(r=>r.id===id); if(loc){ Object.assign(loc, data); render(); return; }
+  const r = getRec(id); if(r) Object.assign(r, data); render();
+  try{ await apiPost({action:'set', id, data}); }catch(e){ console.warn('set', e); toast('Не сохранилось: нет связи'); }
+}
+async function recognize(){}
+// ===================== ОТПРАВИТЬ И СКОПИРОВАТЬ =====================
+function safeName(s){ return String(s||'документ').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim().slice(0,80); }
+function recordText(r){
+  const lines=[r.title, [r.person?personName(r.person):'', fmtD(r.date), r.org].filter(Boolean).join(' · ')];
+  if(r.expires) lines.push('Действует до '+fmtD(r.expires));
+  for(const [k,v] of Object.entries(r.fields||{})) lines.push(`${k}: ${v}`);
+  if(r.summary) lines.push('', r.summary);
+  return lines.join('\n');
+}
+async function shareRecord(id){
+  const r=getRec(id); if(!r) return; const fid=r.file||r.photo; const link=r.fileUrl||r.photoUrl||driveView(fid);
+  if(!fid){ toast('Нет файла'); return; }
+  if(!navigator.share){ window.open(link,'_blank'); return; }
+  toast('Готовлю файл…');
+  try{
+    const j=await apiGet({file:fid}); if(j.error) throw new Error(j.error);
+    const bin=Uint8Array.from(atob(j.data), c=>c.charCodeAt(0)); const mime=j.mime||'application/octet-stream';
+    const ext=mime==='application/pdf'?'pdf':mime.includes('png')?'png':mime.includes('webp')?'webp':'jpg';
+    const f=new File([bin], `${safeName(r.title)} ${r.person?personName(r.person):''} ${fmtD(r.date)}.${ext}`.replace(/\s+/g,' '), {type:mime});
+    if(navigator.canShare && !navigator.canShare({files:[f]})) throw new Error('nofiles');
+    await navigator.share({files:[f], title:r.title});
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+    try{ await navigator.share({title:r.title, text:recordText(r)+'\n'+link}); }catch(_){ if(_&&_.name==='AbortError') return; window.open(link,'_blank'); }
+  }
+}
+async function copyRecord(id){
+  const r=getRec(id); if(!r) return; const t=recordText(r);
+  try{ await navigator.clipboard.writeText(t); toast('Реквизиты скопированы'); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Реквизиты скопированы'); }catch(_){ toast('Выделите текст и скопируйте вручную'); } ta.remove(); }
+}
+async function fileRecord(id){ const r=getRec(id); if(!r) return; const d={status:'filed'}; if(r.area==='car' && !r.object && CARS.length===1) d.object=CARS[0].id; Object.assign(r, d); render(); toast('Положено'); back(); try{ if(d.object) await apiPost({action:'set', id, data:{object:d.object}}); await apiPost({action:'file', id}); }catch(e){ toast('Не сохранилось: нет связи'); } }
+async function removeRecord(id){
+  const li = S.local.findIndex(r=>r.id===id);
+  if(li>=0) S.local.splice(li,1); else { const i=S.real.findIndex(r=>r.id===id); if(i>=0) S.real.splice(i,1); try{ await apiPost({action:'delete', id}); }catch(e){ toast('Не удалилось: нет связи'); } }
+  back(); toast('Удалено');
+}
+const ofCar = (r,id) => r.area==='car' && (r.object===id || (!r.object && CARS.length===1 && id===CARS[0].id));
+const photoUrl = r => r.localUrl || r.photoUrl || driveThumb(r.photo);
+
+// ===================== ПОИСК ВНУТРИ РАЗДЕЛА =====================
+function scope(){
+  let rs = filed();
+  for(const s of S.stack){
+    if(s.kind==='area') rs = rs.filter(r=>r.area===s.id);
+    if(s.kind==='person') rs = rs.filter(r=>ofPerson(r,s.id));
+    if(s.kind==='section') rs = rs.filter(r=>r.section===s.section);
+    if(s.kind==='car') rs = rs.filter(r=>ofCar(r,s.id));
+    if(s.kind==='list') rs = rs.filter(r=>r.category===s.category);
+  }
+  return rs;
+}
+function search(q){
+  const s=q.trim().toLowerCase(); if(s.length<2) return {recs:[], labs:[]};
+  const words=s.split(/\s+/); const hit=t=>{ t=t.toLowerCase(); return words.every(w=>t.includes(w)); };
+  const recs = scope().filter(r=>hit([r.title,r.summary,r.org,r.category,personName(r.person),r.text,...Object.entries(r.fields||{}).flat(),...(r.analytes||[]).map(a=>a.name)].join(' ')));
+  const seen=new Set(); const ls=[]; const persons=new Set(scope().map(r=>r.person));
+  for(const l of labs()){ if(!persons.has(l.person)) continue; const k=l.person+'|'+l.analyte; if(seen.has(k)) continue; if(hit(l.analyte+' '+personName(l.person))){ seen.add(k); ls.push(l); } }
+  return {recs, labs:ls};
+}
+
+// ===================== РЕНДЕР =====================
+function render(){
+  const v = S.stack[S.stack.length-1];
+  const scr = ({area:areaScreen, person:personScreen, section:sectionScreen, list:listScreen, record:recordScreen, labs:labsScreen, lab:labScreen, inbox:inboxScreen, car:carScreen, calendar:calendarScreen, event:eventScreen, evform:eventFormScreen})[v?.kind] || homeScreen;
+  const {title, sub, body, small} = scr(v);
+  $('#top').innerHTML = (v?`<button class="back" aria-label="Назад" data-act="back">${I.back}</button>`:'') + `<div style="flex:1;min-width:0"><h1 class="${small?'small':''}">${title}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+  $('#screen').innerHTML = body;
+  $('#fab').hidden = ['record','lab','labs','calendar','event','evform'].includes(v?.kind);
+  paintOverlays();
+}
+function paintOverlays(){
+  document.querySelectorAll('.sheet,.toast').forEach(e=>e.remove());
+  if(S.sheet==='add') $('#app').insertAdjacentHTML('beforeend', addSheet());
+  if(S.toast) $('#app').insertAdjacentHTML('beforeend', `<div class="toast" role="status">${esc(S.toast)}</div>`);
+}
+function searchBlock(ph){
+  const {recs, labs:ls} = S.q ? search(S.q) : {recs:[],labs:[]};
+  return `<div class="search" role="search">${I.search}<input id="q" type="search" placeholder="${ph}" autocomplete="off" enterkeyhint="search" value="${esc(S.q)}">${S.q?`<button class="x" data-act="clearq">Очистить</button>`:''}</div>
+  ${S.q ? ((recs.length||ls.length) ? `<div class="list">${ls.map(l=>`<button class="row" data-lab="${l.person}|${esc(l.analyte)}"><div class="t"><div class="n">${esc(l.analyte)}</div><div class="s">${esc(personName(l.person))} · показатель в динамике</div></div>${I.chev}</button>`).join('')}${recs.map(r=>recRow(r)).join('')}</div>` : `<div class="note">Ничего не нашлось.</div>`) : ''}`;
+}
+function recRow(r, right=''){
+  const p=photoUrl(r);
+  return `<button class="row" data-record="${r.id}"><div class="d num">${fmtShort(r.date)}</div><div class="t"><div class="n">${esc(r.title)}</div><div class="s">${esc(r.org||r.summary||'')}</div></div>${right?`<div class="r">${right}</div>`:''}<div class="th">${p?`<img src="${p}" alt="">`:I.doc}</div></button>`;
+}
+function emptyBlock(t, s){ return `<div class="empty"><div class="t">${t}</div><div class="s">${s}</div></div>`; }
+function inboxBar(){ const n=inbox().length; return n ? `<button class="inboxbar" data-go-inbox="1"><div style="flex:1"><b>Разобрать · ${n}</b><div class="s">новые фото ждут подтверждения</div></div>${I.chev}</button>` : ''; }
+
+function homeScreen(){
+  const cnt = a => filed().filter(r=>r.area===a).length;
+  return {title:'Семья', body:`
+  ${searchBlock('Поиск по всему архиву')}
+  ${S.q?'':`
+  ${inboxBar()}
+  <div class="people">${PEOPLE.map(p=>`<button class="pp" data-person="${p.id}">${avatar(p)}<div class="n">${p.name}</div></button>`).join('')}</div>
+  <div class="list">
+    ${(()=>{ const up=upcoming(); const n=up[0]; return `<button class="row" data-cal="1">${dot(SECT_C.cal)}<div class="t"><div class="n">Календарь</div><div class="s">${n?`${fmtShort(n.date)}${n.time?' '+n.time:''} · ${esc(n.title)}${n.person?' · '+personName(n.person):''}`:'приёмы, записи, напоминания'}</div></div>${up.length?`<div class="r"><b>${up.length}</b></div>`:''}${I.chev}</button>`; })()}
+    ${AREAS.map(a=>`<button class="row" data-area="${a.id}">${dot(a.c)}<div class="t"><div class="n">${a.name}</div><div class="s">${a.about}</div></div>${cnt(a.id)?`<div class="r"><b>${cnt(a.id)}</b></div>`:''}${I.chev}</button>`).join('')}
+  </div>
+  <div class="status">${!KEY ? 'Откройте приложение по своей личной ссылке.' : S.caps.ready ? (S.offline ? 'Нет связи: показано сохранённое на телефоне' : 'База подключена, фото распознаются') : 'Подключаю базу…'}</div>`}`};
+}
+
+function areaScreen(v){
+  const a = AREAS.find(x=>x.id===v.id); const rs = filed().filter(r=>r.area===a.id);
+  if(a.id==='car'){ if(CARS.length===1) return carScreen({id:CARS[0].id}); return {title:'Машины', body:`${searchBlock('Найти по машинам')}${S.q?'':`<div class="list">${CARS.map(c=>{ const n=rs.filter(r=>ofCar(r,c.id)).length; return `<button class="row" data-car="${c.id}">${dot(a.c)}<div class="t"><div class="n">${c.name}</div><div class="s">${n?plural(n,'документ','документа','документов'):'название и документы добавим'}</div></div>${I.chev}</button>`; }).join('')}</div>`}`}; }
+  if(a.id==='tech'){ const items=[...new Set(rs.map(r=>r.category).filter(Boolean))];
+    return {title:'Техника', body:`${searchBlock('Найти вещь, чек, гарантию')}${S.q?'':(items.length?`<div class="list">${items.map(c=>{ const it=rs.filter(r=>r.category===c); const last=it.find(r=>r.expires); return `<button class="row" data-list="${esc(c)}" data-area="tech"><div class="t"><div class="n">${esc(c)}</div><div class="s">${plural(it.length,'документ','документа','документов')}${last?` · гарантия ${daysTo(last.expires)>0?'до '+fmtD(last.expires):'истекла'}`:''}</div></div>${I.chev}</button>`; }).join('')}</div>`:emptyBlock('Пока пусто','Сфотографируйте чек или гарантийный талон. Вещь появится здесь со сроком гарантии.'))}`}; }
+  if(a.id==='photo'){ const years=[...new Set(rs.map(r=>(r.date||'').slice(0,4)).filter(Boolean))].sort();
+    return {title:'Фото', body:`${searchBlock('Найти по фото')}${S.q?'':`<div class="sect"><h2>По годам</h2><div class="list">${years.length?years.map(y=>`<button class="row" data-list="${y}" data-area="photo"><div class="t"><div class="n">${y}</div></div>${I.chev}</button>`).join(''):`<div class="row dim"><div class="t"><div class="n">Пока пусто</div></div></div>`}</div></div><div class="sect"><h2>Поездки</h2><div class="list"><div class="row dim"><div class="t"><div class="n">Страны и поездки</div><div class="s">подключим к папкам на Google Диске</div></div></div></div></div>`}`}; }
+  return {title:a.name, body:`${searchBlock('Найти по дому')}${S.q?'':`<div class="list">${a.groups.map(g=>{ const n=rs.filter(r=>r.category===g).length; return `<button class="row ${n?'':'dim'}" data-list="${esc(g)}" data-area="${a.id}"><div class="t"><div class="n">${g}</div></div><div class="r">${n?plural(n,'документ','документа','документов'):'пусто'}</div>${I.chev}</button>`; }).join('')}</div>`}`};
+}
+function carScreen(v){
+  const c=CARS.find(x=>x.id===v.id); const rs=filed().filter(r=>ofCar(r,c.id)); const groups=AREAS.find(a=>a.id==='car').groups;
+  return {title:c.name, body:`${searchBlock('Найти по машине')}${S.q?'':`<div class="list">${groups.map(g=>{ const n=rs.filter(r=>r.category===g).length; return `<button class="row ${n?'':'dim'}" data-list="${esc(g)}" data-area="car" data-object="${c.id}"><div class="t"><div class="n">${g}</div></div><div class="r">${n?plural(n,'документ','документа','документов'):'пусто'}</div>${I.chev}</button>`; }).join('')}</div>`}`};
+}
+
+function personScreen(v){
+  const p = PEOPLE.find(x=>x.id===v.id); const rs = filed().filter(r=>ofPerson(r,p.id));
+  const docs = rs.filter(r=>r.section==='docs'), health = rs.filter(r=>r.section==='health'), ins = rs.filter(r=>r.section==='insurance').sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const hcats = [...new Set(health.map(r=>r.category||'Другое'))];
+  const hyears = [...new Set(health.map(r=>(r.date||'').slice(0,4)).filter(Boolean))].sort();
+  const nlabs = new Set(labs().filter(l=>l.person===p.id).map(l=>l.analyte)).size;
+  return {title:p.name, body:`
+  <div style="display:flex;align-items:center;gap:16px;padding:2px 2px 0"><button class="avbtn" data-avatar="${p.id}" aria-label="Фото ${p.name}">${avatar(p,'big')}</button><div class="note" style="padding:0;min-width:0">${S.people[p.id]?.photo?'Нажмите на фото, чтобы заменить.':'Нажмите на кружок, чтобы добавить фото.'}</div></div>
+  ${searchBlock(`Найти у ${p.name}`)}
+  ${S.q?'':`
+  <div class="list">
+    <button class="row" data-section="docs" data-person="${p.id}">${dot(SECT_C.docs)}<div class="t"><div class="n">Документы</div><div class="s">${docs.length?plural(docs.length,'документ','документа','документов'):'паспорт, СНИЛС, полис, диплом'}</div></div>${I.chev}</button>
+    <button class="row" data-section="health" data-person="${p.id}">${dot(SECT_C.health)}<div class="t"><div class="n">Здоровье</div><div class="s">${health.length?`${hyears.join(', ')} · ${hcats.sort(catSort).slice(0,3).join(', ')}${hcats.length>3?` и ещё ${hcats.length-3}`:''}`:'анализы, обследования, врачи'}</div></div>${I.chev}</button>
+    <button class="row" data-section="insurance" data-person="${p.id}">${dot(SECT_C.insurance)}<div class="t"><div class="n">Страховка</div><div class="s">${ins.length?ins.map(r=>`${esc(r.title)}${r.expires?' до '+fmtD(r.expires):''}`).slice(0,2).join(', '):'ДМС, жизнь, путешествия'}</div></div>${I.chev}</button>
+    ${nlabs?`<button class="row" data-labs="${p.id}">${dot(SECT_C.labs)}<div class="t"><div class="n">Показатели</div><div class="s">${plural(nlabs,'показатель','показателя','показателей')} в динамике</div></div>${I.chev}</button>`:''}
+  </div>
+  <div class="sect"><h2>${dot(SECT_C.cal)} Календарь<small>${(()=>{ const n=upcoming().filter(e=>e.person===p.id||!e.person).length; return n?plural(n,'запись впереди','записи впереди','записей впереди'):''; })()}</small></h2>
+    ${monthGrid(S.calMonth, p.id)}
+    ${dayBlock(p.id)}
+  </div>`}`};
+}
+function sectionScreen(v){
+  const p = PEOPLE.find(x=>x.id===v.person); const rs = filed().filter(r=>ofPerson(r,p.id) && r.section===v.section);
+  if(v.section==='docs'){
+    return {title:'Документы', sub:p.name, body:`${searchBlock('Найти документ')}${S.q?'':`<div class="list">${DOC_TYPES.filter(t=>t!=='Другое').map(t=>{ const d=rs.filter(r=>r.category===t).sort((a,b)=>(b.date||'').localeCompare(a.date||''))[0]; return d ? `<button class="row" data-record="${d.id}"><div class="t"><div class="n">${t}</div><div class="s">${d.fields?.['Номер']?'№ '+esc(d.fields['Номер'])+' · ':''}${d.expires?`действует до ${fmtD(d.expires)}`:fmtD(d.date)}</div></div>${d.expires&&daysTo(d.expires)<90?`<div class="r"><span class="tag ${daysTo(d.expires)<30?'alarm':''}">${left(d.expires)}</span></div>`:''}<div class="th">${photoUrl(d)?`<img src="${photoUrl(d)}" alt="">`:I.doc}</div></button>` : `<div class="row dim"><div class="t"><div class="n">${t}</div></div><div class="r">нет</div></div>`; }).join('')}${rs.filter(r=>!DOC_TYPES.includes(r.category)||r.category==='Другое').map(r=>recRow(r)).join('')}</div><div class="note">Серым — чего ещё нет. Нажмите «Добавить» и сфотографируйте документ, он встанет в свою строку.</div>`}`};
+  }
+  if(v.section==='insurance'){
+    const ins = rs.sort((a,b)=>(b.date||'').localeCompare(a.date||'')); const years=[...new Set(ins.map(r=>(r.date||'').slice(0,4)))];
+    return {title:'Страховка', sub:p.name, body:`${searchBlock('Найти полис')}${S.q?'':(ins.length?`<div class="list">${years.map(y=>`<div class="year num">${y}</div>${ins.filter(r=>(r.date||'').startsWith(y)).map(r=>recRow(r, r.expires?`<span class="tag ${daysTo(r.expires)<30?'alarm':''}">${daysTo(r.expires)<0?'истёк':'до '+fmtD(r.expires)}</span>`:'')).join('')}`).join('')}</div>`:emptyBlock('Пока пусто','Сфотографируйте полис: ДМС, страхование жизни, туристическую страховку. Срок действия встанет сам.'))}`};
+  }
+  const cats = [...new Set(rs.map(r=>r.category||'Другое'))].sort(catSort);
+  const yrs = [...new Set(rs.map(r=>(r.date||'').slice(0,4)).filter(Boolean))].sort();
+  return {title:'Здоровье', sub:`${p.name}${yrs.length?' · '+(yrs.length>1?yrs[0]+'—'+yrs[yrs.length-1]:yrs[0]):''}`, body:`${searchBlock('Найти анализ, врача, заключение')}${S.q?'':(cats.length?`<div class="list">${cats.map(c=>{ const it=rs.filter(r=>(r.category||'Другое')===c).sort((a,b)=>(a.date||'').localeCompare(b.date||'')); const f=it[0], l=it[it.length-1]; return `<button class="row" data-list="${esc(c)}" data-person="${p.id}" data-section="health">${dot(catColor(c),true)}<div class="t"><div class="n">${esc(c)}</div><div class="s">${f.date===l.date?fmtMY(f.date):fmtMY(f.date)+' — '+fmtMY(l.date)}</div></div><div class="r"><b>${it.length}</b></div>${I.chev}</button>`; }).join('')}</div>`:emptyBlock('Пока пусто','Сфотографируйте бланк анализов или заключение врача. Появится направление и запись с датой.'))}`};
+}
+function listScreen(v){
+  let rs = filed(); if(v.person) rs=rs.filter(r=>ofPerson(r,v.person)); if(v.area) rs=rs.filter(r=>r.area===v.area); if(v.object) rs=rs.filter(r=>r.object===v.object); if(v.section) rs=rs.filter(r=>r.section===v.section);
+  rs = v.area==='photo' ? rs.filter(r=>(r.date||'').startsWith(v.category)) : rs.filter(r=>(r.category||'Другое')===v.category);
+  rs.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const sub = v.person ? personName(v.person) : v.object ? personName(v.object) : AREAS.find(a=>a.id===v.area)?.name || '';
+  const years=[...new Set(rs.map(r=>(r.date||'').slice(0,4)))];
+  const yc = v.section==='health' ? catColor(v.category) : v.area ? (AREAS.find(a=>a.id===v.area)?.c||'') : SECT_C[v.section]||'';
+  return {title:esc(v.category), sub, small:v.category.length>14, body:`${searchBlock('Найти в этом разделе')}${S.q?'':(rs.length? `<div class="list">${years.map(y=>`<div class="year num tint" style="--c:${yc}">${y}</div>${rs.filter(r=>(r.date||'').startsWith(y)).map(r=>recRow(r)).join('')}`).join('')}</div>` : emptyBlock('Пока пусто','Нажмите «Добавить»: документ ляжет сюда.'))}`};
+}
+
+function recordScreen(v){
+  const r = getRec(v.id); if(!r) return {title:'Запись', body:'<div class="note">Запись удалена.</div>'};
+  const p = photoUrl(r); const busy = S.busy[r.id]; const can = r.status==='inbox';
+  const fields = Object.entries(r.fields||{});
+  const where = [r.person?personName(r.person):r.object?personName(r.object):AREAS.find(a=>a.id===r.area)?.name, r.section==='health'?'Здоровье':r.section==='docs'?'Документы':r.section==='insurance'?'Страховка':'', r.category].filter(Boolean).join(' → ');
+  return {title:esc(r.title), sub:`${fmtD(r.date)}${r.org?' · '+esc(r.org):''}`, small:r.title.length>22, body:`
+  ${p?`<a class="photo-link" href="${p}" target="_blank" rel="noopener"><img class="photo" src="${p}" alt="Документ"></a>`:`<div class="photo ph">без фото</div>`}
+  ${!can&&(r.photo||r.file)?`<div class="btns"><button class="btn primary" data-share="${r.id}">Отправить</button><button class="btn" data-copy="${r.id}">Скопировать реквизиты</button></div>`:''}
+  <div class="tags"><span class="tag c" style="--c:${r.section==='health'?catColor(r.category):(SECT_C[r.section]||AREAS.find(a=>a.id===r.area)?.c||'var(--ink2)')}">${esc(where||'не разложено')}</span>${r.file?`<a class="tag link" href="${esc(r.fileUrl||driveView(r.file))}" target="_blank" rel="noopener">Открыть PDF</a>`:''}${(r.extraFiles||[]).map(f=>`<a class="tag link" href="${esc(driveView(f.id))}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join('')}${r.expires?`<span class="tag ${daysTo(r.expires)<30?'alarm':''}">до ${fmtD(r.expires)}</span>`:''}${r.amount!=null?`<span class="tag num">${fmtN(r.amount)} ₽</span>`:''}</div>
+  ${busy?`<div class="note"><span class="spin"></span> Распознаю…</div>`: r.recogError?`<div class="note">Распознать не удалось. Заполните вручную.</div>`:''}
+  ${r.summary?`<div class="text">${esc(r.summary)}</div>`:''}
+  ${can?`<div class="card"><h3>Куда положить</h3>
+    <div class="row2">
+      <div class="field"><label>Раздел</label><select data-edit="area"><option value="people" ${r.area==='people'?'selected':''}>Люди</option>${AREAS.map(a=>`<option value="${a.id}" ${r.area===a.id?'selected':''}>${a.name}</option>`).join('')}<option value="other" ${r.area==='other'?'selected':''}>Не знаю</option></select></div>
+      <div class="field"><label>Кто</label><select data-edit="person"><option value="">—</option>${PEOPLE.map(x=>`<option value="${x.id}" ${r.person===x.id?'selected':''}>${x.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Раздел у человека</label><select data-edit="section"><option value="">—</option><option value="docs" ${r.section==='docs'?'selected':''}>Документы</option><option value="health" ${r.section==='health'?'selected':''}>Здоровье</option><option value="insurance" ${r.section==='insurance'?'selected':''}>Страховка</option></select></div>
+      <div class="field"><label>Направление или тип</label><input data-edit="category" list="cats" value="${esc(r.category||'')}"><datalist id="cats">${[...DOC_TYPES,...HEALTH_ORDER,'Эндокринолог','Ревматолог','Стоматолог','Педиатр',...AREAS.flatMap(a=>a.groups||[])].map(c=>`<option value="${esc(c)}">`).join('')}</datalist></div>
+    </div>
+    <div class="field"><label>Название</label><input data-edit="title" value="${esc(r.title)}"></div>
+    <div class="row2"><div class="field"><label>Дата</label><input type="date" data-edit="date" value="${esc(r.date||'')}"></div><div class="field"><label>Срок до</label><input type="date" data-edit="expires" value="${esc(r.expires||'')}"></div></div>
+    <div class="field"><label>Организация</label><input data-edit="org" value="${esc(r.org||'')}"></div>
+    <button class="btn primary wide" data-file="${r.id}" ${busy?'disabled':''}>Положить</button>
+    <button class="btn sm" data-remove="${r.id}">Удалить</button>
+  </div>`:''}
+  ${r.analytes?.length?`<div class="sect"><h2>Показатели<small>${r.analytes.length}</small></h2><table class="tbl"><thead><tr><th>Показатель</th><th style="text-align:right">Значение</th><th style="text-align:right">Норма</th></tr></thead><tbody>${r.analytes.map(a=>`<tr><td>${can?esc(a.name):`<button data-lab="${r.person}|${esc(a.name)}" style="font-weight:500">${esc(a.name)}</button>`}</td><td class="n num ${isOut(a)?'out':''}">${fmtN(a.value)} <span style="font-weight:400;color:var(--ink2);font-size:13px">${esc(a.unit)}</span></td><td class="num" style="text-align:right;color:var(--ink2);white-space:nowrap">${a.refLow!=null&&a.refHigh!=null?`${fmtN(a.refLow)}–${fmtN(a.refHigh)}`:a.refHigh!=null?`< ${fmtN(a.refHigh)}`:a.refLow!=null?`> ${fmtN(a.refLow)}`:'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
+  ${fields.length?`<div class="sect"><h2>Реквизиты</h2><dl class="kv">${fields.map(([k,val])=>`<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('')}</dl></div>`:''}
+  ${r.text?`<div class="sect"><h2>Текст документа</h2><div class="ocr">${esc(r.text)}</div></div>`:''}
+  ${!can?`<div class="btns"><button class="btn sm" data-newevent="from:${r.id}">В календарь</button><button class="btn sm" data-remove="${r.id}">Удалить запись</button></div>`:''}`};
+}
+
+function labsScreen(v){
+  const p = PEOPLE.find(x=>x.id===v.person); const m=new Map();
+  for(const l of labs().filter(l=>l.person===p.id).sort((a,b)=>b.date.localeCompare(a.date))){ if(!m.has(l.analyte)) m.set(l.analyte, l); }
+  const rows=[...m.values()].sort((a,b)=>(isOut(b)-isOut(a)) || a.analyte.localeCompare(b.analyte,'ru'));
+  const row = l => { const hist=labs().filter(x=>x.person===l.person&&x.analyte===l.analyte).sort((a,b)=>a.date.localeCompare(b.date)); const prev=hist[hist.length-2]; const d=prev?l.value-prev.value:null;
+    return `<button class="row" data-lab="${l.person}|${esc(l.analyte)}"><div class="t"><div class="n" style="font-size:17px">${esc(l.analyte)}</div><div class="s">${fmtMY(l.date)} · ${plural(hist.length,'измерение','измерения','измерений')}</div></div><div class="r"><b class="num ${isOut(l)?'out':''}">${fmtN(l.value)}</b> <span style="font-size:13px">${esc(l.unit)}</span>${d!=null?`<div class="num delta ${d>0?'up':d<0?'down':''}" style="font-size:13px">${fmtN(Math.abs(d))}</div>`:''}</div>${I.chev}</button>`; };
+  const outN = rows.filter(isOut).length;
+  return {title:'Показатели', sub:`${p.name} · ${outN?plural(outN,'вне нормы','вне нормы','вне нормы'):'все в норме'}`, body:`${searchBlock('Найти показатель')}${S.q?'':`<div class="list">${rows.map(row).join('')}</div><div class="note">Красным — вне нормы по бланку лаборатории. Стрелка — изменение к прошлому измерению.</div>`}`};
+}
+function labScreen(v){
+  const rows = labs().filter(l=>l.person===v.person&&l.analyte===v.analyte).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!rows.length) return {title:v.analyte, body:'<div class="note">Нет данных.</div>'};
+  const last=rows[rows.length-1], prev=rows[rows.length-2]; const d=prev?last.value-prev.value:null;
+  const verdict = isOut(last) ? (last.refLow!=null&&last.value<last.refLow?'ниже нормы':'выше нормы') : 'в норме';
+  const norm = last.refLow!=null||last.refHigh!=null ? `Норма ${last.refLow!=null?fmtN(last.refLow):''}${last.refLow!=null&&last.refHigh!=null?'–':''}${last.refHigh!=null?(last.refLow==null?'до ':'')+fmtN(last.refHigh):''} ${esc(last.unit)}.` : '';
+  return {title:esc(v.analyte), sub:personName(v.person), small:v.analyte.length>18, body:`
+  <div>
+    <div class="verdict"><div class="big num ${isOut(last)?'out':''}">${fmtN(last.value)}</div><div class="w">${esc(last.unit)} · ${verdict}</div></div>
+    <div class="note" style="margin-top:10px">${fmtD(last.date)}${last.org?', '+esc(last.org):''}.${prev?` Прошлый раз ${fmtN(prev.value)} (${fmtD(prev.date)}), <span class="delta num ${d>0?'up':d<0?'down':''}">${fmtN(Math.abs(d))}</span>.`:''} ${norm}</div>
+  </div>
+  ${rows.length>1?`<div class="seg"><button aria-pressed="${S.labView==='chart'}" data-labview="chart">График</button><button aria-pressed="${S.labView==='table'}" data-labview="table">Таблица</button></div>`:''}
+  ${rows.length>1&&S.labView==='chart' ? chart(rows,last) : `<table class="tbl"><thead><tr><th>Дата</th><th>Лаборатория</th><th style="text-align:right">Значение</th></tr></thead><tbody>${[...rows].reverse().map(r=>`<tr><td class="num">${fmtD(r.date)}</td><td>${esc(r.org)}</td><td class="n num ${isOut(r)?'out':''}">${fmtN(r.value)}</td></tr>`).join('')}</tbody></table>`}
+  <div class="sect"><h2>Бланки</h2><div class="list">${[...rows].reverse().map(r=>{ const rec=getRec(r.recordId); return rec?recRow(rec, `<b class="num ${isOut(r)?'out':''}">${fmtN(r.value)}</b>`):''; }).join('')}</div></div>`};
+}
+function chart(rows,last){
+  const W=360,H=210,pl=46,pr=30,pt=18,pb=32; const vals=rows.map(r=>r.value);
+  let lo=Math.min(...vals, last.refLow??Infinity), hi=Math.max(...vals, last.refHigh??-Infinity); if(!isFinite(lo)) lo=Math.min(...vals); if(!isFinite(hi)) hi=Math.max(...vals);
+  const pad=(hi-lo)*0.18||1; lo-=pad; hi+=pad;
+  const t0=new Date(rows[0].date).getTime(), t1=new Date(rows[rows.length-1].date).getTime();
+  const x=t=> pl + (new Date(t).getTime()-t0)/((t1-t0)||1)*(W-pl-pr); const y=v=> pt + (hi-v)/(hi-lo)*(H-pt-pb);
+  const pts=rows.map(r=>[x(r.date),y(r.value)]); const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const bandTop = last.refHigh!=null ? y(last.refHigh) : y(hi), bandBot = last.refLow!=null ? y(last.refLow) : y(lo);
+  const band = (last.refLow!=null||last.refHigh!=null) ? `<rect x="${pl}" y="${bandTop.toFixed(1)}" width="${W-pl-pr}" height="${Math.max(0,bandBot-bandTop).toFixed(1)}" fill="var(--band)" rx="4"/>` : '';
+  const ticks=[lo+pad,(lo+hi)/2,hi-pad].map(v=>`<text x="${pl-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink3)" font-family="inherit">${fmtN(Math.round(v*10)/10)}</text><line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--hair)"/>`).join('');
+  const xl=rows.map((r,i)=>`<text x="${pts[i][0]}" y="${H-10}" text-anchor="${i===0?'start':i===rows.length-1?'end':'middle'}" font-size="11" fill="var(--ink2)" font-family="inherit">${r.date.slice(8,10)}.${r.date.slice(5,7)}.${r.date.slice(2,4)}</text>`).join('');
+  const dots=rows.map((r,i)=>`<circle cx="${pts[i][0]}" cy="${pts[i][1]}" r="${i===rows.length-1?6:4.5}" fill="${isOut(r)?'var(--alarm)':'var(--ink)'}" stroke="var(--paper)" stroke-width="2"/>`).join('');
+  return `<div class="chart" id="chart" data-rows='${esc(JSON.stringify(rows.map(r=>({d:r.date,v:r.value,u:r.unit,o:r.org}))))}'><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="История показателя" style="font-family:inherit">${band}${ticks}<path d="${path}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>${dots}${xl}</svg><div class="tip" id="tip"></div></div>`;
+}
+// ===================== КАЛЕНДАРЬ =====================
+function upcoming(){ return S.events.filter(e=>(e.date||'')>=today).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||''))); }
+function gcalUrl(e){
+  const d=(e.date||today).replace(/-/g,''); let dates;
+  if(e.time){ const [h,m]=e.time.split(':').map(Number); const s=`${d}T${String(h).padStart(2,'0')}${String(m).padStart(2,'0')}00`; const e2=new Date(2000,0,1,h+1,m); dates=`${s}/${d}T${String(e2.getHours()).padStart(2,'0')}${String(e2.getMinutes()).padStart(2,'0')}00`; }
+  else { const n=new Date(e.date); n.setDate(n.getDate()+1); dates=`${d}/${n.toISOString().slice(0,10).replace(/-/g,'')}`; }
+  const text=[e.title, e.person?personName(e.person):''].filter(Boolean).join(' · ');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(text)+'&dates='+dates+'&ctz=Asia/Yekaterinburg'+(e.place?'&location='+encodeURIComponent(e.place):'')+(e.note?'&details='+encodeURIComponent(e.note):'');
+}
+function evRow(e, showDate=true){ const past=(e.date||'')<today; return `<button class="row" data-event="${e.id}">${dot(e.person?pColor(e.person):'var(--c-cal)')}<div class="d num">${showDate?fmtShort(e.date):''}${e.time?`${showDate?'<br>':''}${e.time}`:''}</div><div class="t"><div class="n" ${past?'style="color:var(--ink2)"':''}>${esc(e.title)}</div><div class="s">${[e.person?personName(e.person):'', e.place].filter(Boolean).join(' · ')}</div></div>${I.chev}</button>`; }
+function evFor(person){ return person ? S.events.filter(e=>e.person===person || !e.person) : S.events; }
+function monthGrid(ym, person){
+  const MONTHS_N = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const [y,m]=ym.split('-').map(Number); const first=new Date(y,m-1,1); const startDow=(first.getDay()+6)%7; const dim=new Date(y,m,0).getDate(); const prevDim=new Date(y,m-1,0).getDate();
+  const has=new Set(evFor(person).map(e=>e.date));
+  const cells=[];
+  for(let i=0;i<42;i++){ const dn=i-startDow+1; let d, other=false; if(dn<1){ d=new Date(y,m-2,prevDim+dn); other=true; } else if(dn>dim){ d=new Date(y,m,dn-dim); other=true; } else d=new Date(y,m-1,dn);
+    const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; const dow=(d.getDay()+6)%7;
+    if(i>=35 && other) break;
+    const evs=evFor(person).filter(e=>e.date===iso); const dc = evs.length ? (evs[0].person ? pColor(evs[0].person) : 'var(--c-cal)') : '';
+    cells.push(`<button class="day ${other?'other':''} ${dow>=5?'we':''} ${iso===today?'today':''} ${iso===S.calDay?'sel':''}" data-calday="${iso}" ${person?`data-person="${person}"`:''} aria-label="${fmtD(iso)}"><span class="n num">${d.getDate()}</span>${evs.length?`<span class="dot" style="--c:${dc};position:absolute;bottom:4px;width:5px;height:5px"></span>`:''}</button>`); }
+  const prev=new Date(y,m-2,1), next=new Date(y,m,1); const ymOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  return `<div class="cal"><div class="hd"><button class="nav" data-calnav="${ymOf(prev)}" aria-label="Прошлый месяц">${I.back}</button><b>${MONTHS_N[m-1]} ${y}</b><button class="nav" data-calnav="${ymOf(next)}" aria-label="Следующий месяц" style="transform:scaleX(-1)">${I.back}</button></div>
+  <div class="wd"><span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span></div><div class="days">${cells.join('')}</div></div>`;
+}
+function dayBlock(person){
+  const d=S.calDay; const list=evFor(person).filter(e=>e.date===d).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const rel=daysTo(d); const when = rel===0?'сегодня':rel===1?'завтра':rel===-1?'вчера':'';
+  return `<div class="sect"><h2>${fmtD(d)}${when?`<small>${when}</small>`:''}</h2>
+    ${list.length?`<div class="list">${list.map(e=>evRow(e,false)).join('')}</div>`:`<div class="note">На этот день записей нет.</div>`}
+    <button class="btn ${list.length?'':'primary'} wide" data-newevent="day:${d}" ${person?`data-person="${person}"`:''}>Записать на ${fmtShort(d)}</button></div>`;
+}
+function calendarScreen(v){
+  const person=v?.person||''; const up=upcoming().filter(e=>!person || e.person===person || !e.person);
+  return {title:'Календарь', sub: person?personName(person):(up.length?plural(up.length,'запись впереди','записи впереди','записей впереди'):''), body:`
+  ${monthGrid(S.calMonth, person)}
+  ${dayBlock(person)}
+  ${up.length?`<div class="sect"><h2>Впереди</h2><div class="list">${up.slice(0,12).map(e=>evRow(e)).join('')}</div></div>`:''}
+  ${KEY?'':'<div class="note">Откройте приложение по личной ссылке, иначе записи не сохранятся.</div>'}`};
+}
+function eventScreen(v){
+  const e=S.events.find(x=>x.id===v.id); if(!e) return {title:'Запись', body:'<div class="note">Удалена.</div>'};
+  const d=daysTo(e.date);
+  return {title:esc(e.title), sub:`${fmtD(e.date)}${e.time?' в '+e.time:''}${e.person?' · '+personName(e.person):''}`, small:e.title.length>22, body:`
+  <div class="verdict"><div class="big num">${d===0?'сегодня':d===1?'завтра':d>1?`через ${plural(d,'день','дня','дней')}`:'прошло'}</div></div>
+  ${e.place?`<div class="text">${esc(e.place)}</div>`:''}${e.note?`<div class="note">${esc(e.note)}</div>`:''}
+  <div class="btns"><a class="btn primary" href="${gcalUrl(e)}" target="_blank" rel="noopener">В Google Календарь</a><button class="btn" data-newevent="${e.id}">Изменить</button><button class="btn sm" data-delevent="${e.id}">Удалить</button></div>
+  <div class="note">В Google Календаре у события включите уведомления «за 1 день» и «в момент события», один раз в настройках календаря, дальше они ставятся сами. Телефон напомнит и вам, и Ксении, если календарь общий.</div>`};
+}
+function eventFormScreen(v){
+  const e=S.ev;
+  return {title: e.id?'Изменить запись':'Новая запись', body:`
+  <div class="card">
+    <div class="field"><label>Что</label><input data-ev="title" value="${esc(e.title||'')}" placeholder="Приём невролога, ТО машины, налоговая"></div>
+    <div class="row2"><div class="field"><label>Кто</label><select data-ev="person"><option value="">Семья</option>${PEOPLE.map(p=>`<option value="${p.id}" ${e.person===p.id?'selected':''}>${p.name}</option>`).join('')}</select></div><div class="field"><label>Дата</label><input type="date" data-ev="date" value="${esc(e.date||'')}"></div></div>
+    <div class="row2"><div class="field"><label>Время</label><input type="time" data-ev="time" value="${esc(e.time||'')}"></div><div class="field"><label>Где</label><input data-ev="place" value="${esc(e.place||'')}" placeholder="Клиника, адрес"></div></div>
+    <div class="field"><label>Заметка</label><input data-ev="note" value="${esc(e.note||'')}" placeholder="Взять карту, натощак…"></div>
+    <button class="btn primary wide" data-saveevent="1">Сохранить</button>
+  </div>`};
+}
+async function saveEvent(){
+  const e=S.ev; if(!e.title||!e.date){ toast('Нужны название и дата'); return; }
+  const data={title:e.title.slice(0,120), person:e.person||'', date:e.date, time:e.time||'', place:(e.place||'').slice(0,160), note:(e.note||'').slice(0,400), updatedAt:new Date().toISOString()};
+  if(!KEY){ toast('Откройте приложение по личной ссылке'); return; }
+  try{ await apiPost({action:'event', id:e.id||'', data}); S.ev=null; back(); toast('Сохранено'); load(true); }
+  catch(err){ toast('Не удалось сохранить'); }
+}
+function inboxScreen(){
+  const rows=inbox().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  return {title:'Разобрать', sub: rows.length?plural(rows.length,'запись','записи','записей'):'всё разложено', body: rows.length?`<div class="list">${rows.map(r=>recRow(r, S.busy[r.id]?'<span class="spin"></span>':(r.recognized?'готово':''))).join('')}</div><div class="note">Откройте запись, проверьте, куда она ляжет, и нажмите «Положить».</div>`:emptyBlock('Пусто','Новые фото появляются здесь на проверку.')};
+}
+function addSheet(){
+  const c=S.caps; const ctx=ctxDefaults(); const where=[ctx.person?personName(ctx.person):AREAS.find(a=>a.id===ctx.area)?.name, ctx.section==='health'?'Здоровье':ctx.section==='docs'?'Документы':'', ctx.category].filter(Boolean).join(' → ');
+  return `<div class="sheet" data-act="closeSheet"><div class="in" role="dialog" aria-label="Добавить">
+    <h3>Добавить</h3>
+    ${where?`<div class="note" style="padding:0 0 6px">Ляжет в: <b>${esc(where)}</b></div>`:''}
+    <button class="opt" data-act="cam"><div class="ic">${I.cam}</div><div><div class="n">Сфотографировать</div><div class="s">Анализ, заключение, паспорт, чек, квитанция</div></div></button>
+    <button class="opt" data-act="gal"><div class="ic">${I.photo}</div><div><div class="n">Из галереи или файл</div><div class="s">Фото или PDF, можно несколько</div></div></button>
+    <div class="note" style="padding:4px 0 0">${c.sample&&c.images?'Фото распознается само: кто, что, дата, показатели. Вы только подтверждаете.':'Распознавание в этом просмотре выключено, карточку заполните вручную.'}</div>
+  </div></div>`;
+}
+
+// ===================== СОБЫТИЯ =====================
+let avatarFor = '';
+document.addEventListener('click', async e=>{
+  const b = e.target.closest('[data-area],[data-person],[data-section],[data-list],[data-record],[data-lab],[data-labs],[data-car],[data-act],[data-file],[data-remove],[data-labview],[data-go-inbox],[data-avatar],[data-cal],[data-event],[data-newevent],[data-saveevent],[data-delevent],[data-share],[data-copy],[data-calnav],[data-calday]');
+  if(!b) return;
+  if(b.dataset.calnav){ S.calMonth=b.dataset.calnav; render(); return; }
+  if(b.dataset.calday){ S.calDay=b.dataset.calday; S.calMonth=b.dataset.calday.slice(0,7); const scr=$('#screen'); const pos=scr.scrollTop; render(); $('#screen').scrollTop=pos; return; }
+  if(b.dataset.share){ await shareRecord(b.dataset.share); return; }
+  if(b.dataset.copy){ await copyRecord(b.dataset.copy); return; }
+  if(b.dataset.avatar){ avatarFor=b.dataset.avatar; $('#pick-avatar').click(); return; }
+  if(b.dataset.cal){ go({kind:'calendar', person:b.dataset.person||''}); return; }
+  if(b.dataset.event){ go({kind:'event', id:b.dataset.event}); return; }
+  if(b.dataset.newevent){ const v=b.dataset.newevent; const c=ctxDefaults();
+    if(v.startsWith('from:')){ const r=getRec(v.slice(5)); S.ev={title:r?.title||'', person:r?.person||'', date:r?.expires||r?.date||today, time:'', place:r?.org||'', note:''}; }
+    else if(v.startsWith('day:')){ S.ev={title:'', person:b.dataset.person||c.person||'', date:v.slice(4), time:'', place:'', note:''}; }
+    else if(v!=='1'){ S.ev={...S.events.find(x=>x.id===v)}; }
+    else { S.ev={title:'', person:c.person||'', date:S.calDay||today, time:'', place:'', note:''}; }
+    go({kind:'evform'}); return; }
+  if(b.dataset.saveevent){ await saveEvent(); return; }
+  if(b.dataset.delevent){ const id=b.dataset.delevent; S.events=S.events.filter(x=>x.id!==id); try{ await apiPost({action:'event_delete', id}); }catch(err){ toast('Не удалилось: нет связи'); } back(); toast('Удалено'); return; }
+  if(b.dataset.labview){ S.labView=b.dataset.labview; render(); return; }
+  if(b.dataset.record){ go({kind:'record', id:b.dataset.record}); return; }
+  if(b.dataset.lab){ const [person, analyte]=b.dataset.lab.split('|'); go({kind:'lab', person, analyte}); return; }
+  if(b.dataset.labs){ go({kind:'labs', person:b.dataset.labs}); return; }
+  if(b.dataset.list){ go({kind:'list', category:b.dataset.list, person:b.dataset.person||'', area:b.dataset.area||'', section:b.dataset.section||'', object:b.dataset.object||''}); return; }
+  if(b.dataset.section){ go({kind:'section', section:b.dataset.section, person:b.dataset.person}); return; }
+  if(b.dataset.car){ go({kind:'car', id:b.dataset.car}); return; }
+  if(b.dataset.person){ go({kind:'person', id:b.dataset.person}); return; }
+  if(b.dataset.area){ go({kind:'area', id:b.dataset.area}); return; }
+  if(b.dataset.goInbox){ go({kind:'inbox'}); return; }
+  if(b.dataset.file){ await fileRecord(b.dataset.file); return; }
+  if(b.dataset.remove){ await removeRecord(b.dataset.remove); return; }
+  const a=b.dataset.act;
+  if(a==='back') back();
+  if(a==='clearq'){ S.q=''; render(); }
+  if(a==='closeSheet' && e.target===b){ S.sheet=null; paintOverlays(); }
+  if(a==='cam') $('#pick-cam').click();
+  if(a==='gal') $('#pick-gal').click();
+});
+document.addEventListener('input', e=>{ const k=e.target.dataset.ev; if(k&&S.ev){ S.ev[k]=e.target.value; } });
+document.addEventListener('change', e=>{
+  const k=e.target.dataset.ev; if(k&&S.ev){ S.ev[k]=e.target.value; return; }
+  if(e.target.id==='pick-avatar'){ const f=e.target.files[0]; e.target.value=''; if(f&&avatarFor) setAvatar(avatarFor, f); return; }
+  if(e.target.id==='pick-cam'||e.target.id==='pick-gal'){ const files=[...e.target.files]; e.target.value=''; if(files.length) ingest(files); return; }
+  const ed=e.target.dataset.edit; if(!ed) return; const v=S.stack[S.stack.length-1]; if(v?.kind!=='record') return;
+  const data={}; data[ed]=e.target.value; if(ed==='section'&&e.target.value) data.area='people';
+  const r=getRec(v.id); if(r) Object.assign(r,data); patch(v.id,data);
+});
+document.addEventListener('input', e=>{ if(e.target.id==='q'){ S.q=e.target.value; const scr=$('#screen'); const pos=scr.scrollTop; render(); const qi=$('#q'); if(qi){ qi.focus(); qi.setSelectionRange(qi.value.length,qi.value.length);} scr.scrollTop=pos; } });
+document.addEventListener('pointermove', e=>{
+  const ch=e.target.closest('#chart'); const tip=$('#tip'); if(!ch||!tip){ if(tip) tip.style.display='none'; return; }
+  const rows=JSON.parse(ch.dataset.rows); const svg=ch.querySelector('svg'); const rect=svg.getBoundingClientRect(); const dots=[...svg.querySelectorAll('circle')]; let best=null,bd=1e9;
+  dots.forEach((c,i)=>{ const cx=rect.left+c.cx.baseVal.value/360*rect.width; const d=Math.abs(cx-e.clientX); if(d<bd){bd=d;best=i;} });
+  if(best==null||bd>40){ tip.style.display='none'; return; } const c=dots[best];
+  tip.style.left=(c.cx.baseVal.value/360*rect.width)+'px'; tip.style.top=(c.cy.baseVal.value/210*rect.height)+'px'; tip.style.display='block'; tip.textContent=`${fmtD(rows[best].d)} · ${fmtN(rows[best].v)} ${rows[best].u}${rows[best].o?' · '+rows[best].o:''}`;
+});
+$('#fab').addEventListener('click', ()=>{ S.sheet='add'; paintOverlays(); });
+/* Свайп от левого края — назад, как в iOS: экран едет за пальцем, после трети ширины уходит и возвращается прошлый */
+(function(){ const app=$('#app'); let sx=0, sy=0, dx=0, on=false, lock=false; const els=()=>[$('#screen'),$('#top')];
+  const set=(x,anim)=>{ els().forEach(e=>{ e.style.transition=anim?'transform .22s ease-out':'none'; e.style.transform=x?`translateX(${x}px)`:''; }); };
+  app.addEventListener('touchstart', e=>{ if(!S.stack.length||S.sheet) return; const t=e.touches[0]; if(t.clientX>28) return; sx=t.clientX; sy=t.clientY; dx=0; on=true; lock=false; }, {passive:true});
+  app.addEventListener('touchmove', e=>{ if(!on) return; const t=e.touches[0]; const mx=t.clientX-sx, my=t.clientY-sy; if(!lock){ if(Math.abs(my)>Math.abs(mx)){ on=false; return; } if(mx>6) lock=true; else return; } dx=Math.max(0,mx); set(dx,false); }, {passive:true});
+  const end=()=>{ if(!on) return; on=false; const w=app.clientWidth; if(dx>w/3){ set(w,true); setTimeout(()=>{ set(0,false); back(); },200); } else set(0,true); };
+  app.addEventListener('touchend', end); app.addEventListener('touchcancel', end);
+})();
+/* Потянуть страницу вниз — обновить всё */
+(function(){ const sc=$('#screen'); const ptr=document.createElement('div'); ptr.id='ptr'; $('#app').appendChild(ptr); let y0=0, pull=0, on=false, fired=false;
+  sc.addEventListener('touchstart', e=>{ if(S.sheet||sc.scrollTop>0){ on=false; return; } y0=e.touches[0].clientY; pull=0; on=true; fired=false; }, {passive:true});
+  sc.addEventListener('touchmove', e=>{ if(!on||fired) return; pull=e.touches[0].clientY-y0; if(pull<10){ ptr.classList.remove('on'); return; } ptr.classList.add('on'); ptr.textContent = pull>90 ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить'; }, {passive:true});
+  const end=()=>{ if(!on) return; on=false; if(pull>90 && !fired){ fired=true; ptr.textContent='Обновляю…'; load(true).then(()=>{ ptr.classList.remove('on'); if(!S.offline) toast('Обновлено'); }); } else ptr.classList.remove('on'); };
+  sc.addEventListener('touchend', end); sc.addEventListener('touchcancel', end);
+})();
+render();
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
