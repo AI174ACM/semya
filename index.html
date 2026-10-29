@@ -65,7 +65,7 @@ h1,h2,h3{margin:0;text-wrap:balance;line-height:1.1;font-weight:700;letter-spaci
 .search .x{color:var(--ink2);font-size:15px;font-weight:500}
 
 /* портреты */
-.people{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:2px 0}
+.people{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 0 2px}
 .pp{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0;border-radius:16px}
 .pp:active .av{transform:scale(.96)}
 .av{border-radius:50%;background:var(--fill);display:grid;place-items:center;overflow:hidden;flex:none;color:var(--ink3);transition:transform .12s ease-out}
@@ -79,7 +79,7 @@ h1,h2,h3{margin:0;text-wrap:balance;line-height:1.1;font-weight:700;letter-spaci
 .tag.c{color:var(--c,var(--ink2));background:color-mix(in srgb,var(--c,var(--ink2)) 12%,transparent)}
 .pp .av{width:76px;height:76px}
 .av.big{width:88px;height:88px}
-.avbtn{flex:none;width:88px;height:88px;display:block;border-radius:50%;margin-left:6px}
+.avbtn{flex:none;width:88px;height:88px;display:block;border-radius:50%}
 #ptr{position:absolute;left:0;right:0;top:0;text-align:center;font-size:14px;color:var(--ink2);padding-top:env(safe-area-inset-top,0px);height:0;overflow:hidden;transition:height .18s ease-out;pointer-events:none;z-index:3}
 #ptr.on{height:44px;line-height:44px}
 .pp .n{font-weight:600;font-size:15px}
@@ -454,7 +454,7 @@ function personScreen(v){
   const hyears = [...new Set(health.map(r=>(r.date||'').slice(0,4)).filter(Boolean))].sort();
   const nlabs = new Set(labs().filter(l=>l.person===p.id).map(l=>l.analyte)).size;
   return {title:p.name, body:`
-  <div style="display:flex;align-items:center;gap:16px;padding:2px 2px 0"><button class="avbtn" data-avatar="${p.id}" aria-label="Фото ${p.name}">${avatar(p,'big')}</button><div class="note" style="padding:0;min-width:0">${S.people[p.id]?.photo?'Нажмите на фото, чтобы заменить.':'Нажмите на кружок, чтобы добавить фото.'}</div></div>
+  <div style="display:flex;align-items:center;gap:16px;padding:8px 2px 0 8px"><button class="avbtn" data-avatar="${p.id}" aria-label="Фото ${p.name}">${avatar(p,'big')}</button><div class="note" style="padding:0;min-width:0">${S.people[p.id]?.photo?'Нажмите на фото, чтобы заменить.':'Нажмите на кружок, чтобы добавить фото.'}</div></div>
   ${searchBlock(`Найти у ${p.name}`)}
   ${S.q?'':`
   <div class="list">
