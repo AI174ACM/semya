@@ -1,9 +1,9 @@
 {
  "name": "Семья",
  "short_name": "Семья",
- "start_url": "./",
  "scope": "./",
  "display": "standalone",
+ "orientation": "portrait",
  "background_color": "#FBFAF7",
  "theme_color": "#FBFAF7",
  "lang": "ru",
