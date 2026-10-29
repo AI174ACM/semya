@@ -106,6 +106,11 @@ h1,h2,h3{margin:0;text-wrap:balance;line-height:1.1;font-weight:700;letter-spaci
 .card h3{font-size:19px}
 .photo{width:100%;max-width:100%;max-height:72vh;border-radius:14px;background:var(--fill);display:block;object-fit:contain;border:1px solid var(--hair)}
 .photo.ph{display:grid;place-items:center;color:var(--ink3);font-size:15px;aspect-ratio:4/3}
+.pages{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.pages::-webkit-scrollbar{display:none}
+.pages .pg{flex:0 0 88%;scroll-snap-align:center;position:relative}
+.pages .pg .photo{max-height:60vh;width:100%}
+.pages .pg .num{position:absolute;right:10px;bottom:10px;font-size:13px;font-weight:600;color:#fff;background:rgba(0,0,0,.45);border-radius:999px;padding:3px 9px}
 a.photo-link{display:block}
 .text{font-size:17px;line-height:1.5}
 .kv{display:grid;grid-template-columns:minmax(104px,auto) 1fr;gap:10px 16px;font-size:15px;margin:0;line-height:1.4}
@@ -201,6 +206,7 @@ a.photo-link{display:block}
   <input id="pick-cam" type="file" accept="image/*" capture="environment" hidden>
   <input id="pick-gal" type="file" accept="image/*,application/pdf" multiple hidden>
   <input id="pick-avatar" type="file" accept="image/*" hidden>
+  <input id="pick-page" type="file" accept="image/*" hidden>
 </div>
 
 <script>
@@ -323,6 +329,12 @@ async function setAvatar(pid, file){
   if(!KEY){ toast('Откройте приложение по личной ссылке'); return; }
   try{ const small=await shrink(file); const data=await toB64(small); const j=await apiPost({action:'avatar', person:pid, data, mime:small.type||'image/jpeg'}); S.people[pid]={...(S.people[pid]||{}), photo:j.id, photoUrl:URL.createObjectURL(small)}; render(); toast('Фото сохранено'); load(true); }
   catch(e){ toast('Не удалось сохранить фото'); }
+}
+async function addPage(id, file){
+  const r=getRec(id); if(!r) return; if(!KEY){ toast('Откройте приложение по личной ссылке'); return; }
+  toast('Загружаю страницу…');
+  try{ const small=await shrink(file); const data=await toB64(small); const j=await apiPost({action:'add_page', id, data, mime:small.type||'image/jpeg', name:(r.title||'страница')+' стр.'+((r.pages||[]).length+2)+'.jpg'}); r.pages=j.pages; render(); toast('Страница добавлена'); }
+  catch(e){ toast('Не удалось добавить страницу'); }
 }
 function getRec(id){ return records().find(r=>r.id===id); }
 async function patch(id, data){
@@ -494,13 +506,21 @@ function listScreen(v){
   return {title:esc(v.category), sub, small:v.category.length>14, body:`${searchBlock('Найти в этом разделе')}${S.q?'':(rs.length? `<div class="list">${years.map(y=>`<div class="year num tint" style="--c:${yc}">${y}</div>${rs.filter(r=>(r.date||'').startsWith(y)).map(r=>recRow(r)).join('')}`).join('')}</div>` : emptyBlock('Пока пусто','Нажмите «Добавить»: документ ляжет сюда.'))}`};
 }
 
+const pageUrl = id => driveThumb(id);
+function pagesBlock(r, p){
+  const urls = [p].concat((r.pages||[]).map(pageUrl)).filter(Boolean);
+  if(!urls.length) return '<div class="photo ph">без фото</div>';
+  if(urls.length===1) return `<a class="photo-link" href="${urls[0]}" target="_blank" rel="noopener"><img class="photo" src="${urls[0]}" alt="Документ"${rotStyle(r)}></a>`;
+  const names = ['Лицевая','Оборот','Страница 3','Страница 4','Страница 5','Страница 6'];
+  return `<div class="pages">${urls.map((u,i)=>`<a class="pg photo-link" href="${u}" target="_blank" rel="noopener"><img class="photo" src="${u}" alt="${names[i]||''}" loading="lazy"${i?'':rotStyle(r)}><span class="num">${names[i]||(i+1)} · ${i+1}/${urls.length}</span></a>`).join('')}</div>`;
+}
 function recordScreen(v){
   const r = getRec(v.id); if(!r) return {title:'Запись', body:'<div class="note">Запись удалена.</div>'};
   const p = photoUrl(r); const busy = S.busy[r.id]; const can = r.status==='inbox';
   const fields = Object.entries(r.fields||{});
   const where = [r.person?personName(r.person):r.object?personName(r.object):AREAS.find(a=>a.id===r.area)?.name, r.section==='health'?'Здоровье':r.section==='docs'?'Документы':r.section==='insurance'?'Страховка':'', r.category].filter(Boolean).join(' → ');
   return {title:esc(r.title), sub:`${fmtD(r.date)}${r.org?' · '+esc(r.org):''}`, small:r.title.length>22, body:`
-  ${p?`<a class="photo-link" href="${p}" target="_blank" rel="noopener"><img class="photo" src="${p}" alt="Документ"${rotStyle(r)}></a>`:`<div class="photo ph">без фото</div>`}
+  ${pagesBlock(r, p)}
   ${!can&&(r.photo||r.file)?`<div class="btns"><button class="btn primary" data-share="${r.id}">Отправить</button><button class="btn" data-copy="${r.id}">Скопировать реквизиты</button></div>`:''}
   <div class="tags"><span class="tag c" style="--c:${r.section==='health'?catColor(r.category):(SECT_C[r.section]||AREAS.find(a=>a.id===r.area)?.c||'var(--ink2)')}">${esc(where||'не разложено')}</span>${r.file?`<a class="tag link" href="${esc(r.fileUrl||driveView(r.file))}" target="_blank" rel="noopener">Открыть PDF</a>`:''}${(r.extraFiles||[]).map(f=>`<a class="tag link" href="${esc(driveView(f.id))}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join('')}${r.expires?`<span class="tag ${daysTo(r.expires)<30?'alarm':''}">до ${fmtD(r.expires)}</span>`:''}${r.amount!=null?`<span class="tag num">${fmtN(r.amount)} ₽</span>`:''}</div>
   ${busy?`<div class="note"><span class="spin"></span> Распознаю…</div>`: r.recogError?`<div class="note">Распознать не удалось. Заполните вручную.</div>`:''}
@@ -523,7 +543,7 @@ function recordScreen(v){
   ${r.analytes?.length?`<div class="sect"><h2>Показатели<small>${r.analytes.length}</small></h2><table class="tbl"><thead><tr><th>Показатель</th><th style="text-align:right">Значение</th><th style="text-align:right">Норма</th></tr></thead><tbody>${r.analytes.map(a=>`<tr><td>${can?esc(a.name):`<button data-lab="${r.person}|${esc(a.name)}" style="font-weight:500">${esc(a.name)}</button>`}</td><td class="n num ${isOut(a)?'out':''}">${fmtN(a.value)} <span style="font-weight:400;color:var(--ink2);font-size:13px">${esc(a.unit)}</span></td><td class="num" style="text-align:right;color:var(--ink2);white-space:nowrap">${a.refLow!=null&&a.refHigh!=null?`${fmtN(a.refLow)}–${fmtN(a.refHigh)}`:a.refHigh!=null?`< ${fmtN(a.refHigh)}`:a.refLow!=null?`> ${fmtN(a.refLow)}`:'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
   ${fields.length?`<div class="sect"><h2>Реквизиты</h2><dl class="kv">${fields.map(([k,val])=>`<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('')}</dl></div>`:''}
   ${r.text?`<div class="sect"><h2>Текст документа</h2><div class="ocr">${esc(r.text)}</div></div>`:''}
-  ${!can?`<div class="btns"><button class="btn sm" data-newevent="from:${r.id}">В календарь</button><button class="btn sm" data-remove="${r.id}">Удалить запись</button></div>`:''}`};
+  ${!can?`<div class="btns"><button class="btn sm" data-addpage="${r.id}">Добавить страницу</button><button class="btn sm" data-newevent="from:${r.id}">В календарь</button><button class="btn sm" data-remove="${r.id}">Удалить запись</button></div>`:''}`};
 }
 
 function labsScreen(v){
@@ -647,15 +667,16 @@ function addSheet(){
 }
 
 // ===================== СОБЫТИЯ =====================
-let avatarFor = '';
+let avatarFor = ''; let pageFor = '';
 document.addEventListener('click', async e=>{
-  const b = e.target.closest('[data-area],[data-person],[data-section],[data-list],[data-record],[data-lab],[data-labs],[data-car],[data-act],[data-file],[data-remove],[data-labview],[data-go-inbox],[data-avatar],[data-cal],[data-event],[data-newevent],[data-saveevent],[data-delevent],[data-share],[data-copy],[data-calnav],[data-calday]');
+  const b = e.target.closest('[data-area],[data-person],[data-section],[data-list],[data-record],[data-lab],[data-labs],[data-car],[data-act],[data-file],[data-remove],[data-labview],[data-go-inbox],[data-avatar],[data-addpage],[data-cal],[data-event],[data-newevent],[data-saveevent],[data-delevent],[data-share],[data-copy],[data-calnav],[data-calday]');
   if(!b) return;
   if(b.dataset.calnav){ S.calMonth=b.dataset.calnav; render(); return; }
   if(b.dataset.calday){ S.calDay=b.dataset.calday; S.calMonth=b.dataset.calday.slice(0,7); const scr=$('#screen'); const pos=scr.scrollTop; render(); $('#screen').scrollTop=pos; return; }
   if(b.dataset.share){ await shareRecord(b.dataset.share); return; }
   if(b.dataset.copy){ await copyRecord(b.dataset.copy); return; }
   if(b.dataset.avatar){ avatarFor=b.dataset.avatar; $('#pick-avatar').click(); return; }
+  if(b.dataset.addpage){ pageFor=b.dataset.addpage; $('#pick-page').click(); return; }
   if(b.dataset.cal){ go({kind:'calendar', person:b.dataset.person||''}); return; }
   if(b.dataset.event){ go({kind:'event', id:b.dataset.event}); return; }
   if(b.dataset.newevent){ const v=b.dataset.newevent; const c=ctxDefaults();
@@ -688,6 +709,7 @@ document.addEventListener('click', async e=>{
 document.addEventListener('input', e=>{ const k=e.target.dataset.ev; if(k&&S.ev){ S.ev[k]=e.target.value; } });
 document.addEventListener('change', e=>{
   const k=e.target.dataset.ev; if(k&&S.ev){ S.ev[k]=e.target.value; return; }
+  if(e.target.id==='pick-page'){ const f=e.target.files[0]; e.target.value=''; if(f&&pageFor) addPage(pageFor, f); return; }
   if(e.target.id==='pick-avatar'){ const f=e.target.files[0]; e.target.value=''; if(f&&avatarFor) setAvatar(avatarFor, f); return; }
   if(e.target.id==='pick-cam'||e.target.id==='pick-gal'){ const files=[...e.target.files]; e.target.value=''; if(files.length) ingest(files); return; }
   const ed=e.target.dataset.edit; if(!ed) return; const v=S.stack[S.stack.length-1]; if(v?.kind!=='record') return;
