@@ -290,8 +290,8 @@ async function load(quiet){
 const toB64 = f => new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result).split(',')[1]); fr.onerror=rej; fr.readAsDataURL(f); });
 /* Фото с телефона ужимаем до 2000 px по длинной стороне: быстрее уходит и распознаётся, для документа хватает */
 async function shrink(file){
-  if(!file.type.startsWith('image/') || file.size<900_000) return file;
-  try{ const bmp=await createImageBitmap(file); const k=Math.min(1, 2000/Math.max(bmp.width,bmp.height)); const c=document.createElement('canvas'); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  if(!file.type.startsWith('image/')) return file;
+  try{ const bmp=await createImageBitmap(file, {imageOrientation:'from-image'}); const k=Math.min(1, 2000/Math.max(bmp.width,bmp.height)); const c=document.createElement('canvas'); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
     const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.86)); return blob ? new File([blob], (file.name||'фото').replace(/\.\w+$/,'')+'.jpg', {type:'image/jpeg'}) : file; }
   catch(e){ return file; }
 }
@@ -347,8 +347,10 @@ async function shareRecord(id){
   toast('Готовлю файл…');
   try{
     const j=await apiGet({file:fid}); if(j.error) throw new Error(j.error);
-    const bin=Uint8Array.from(atob(j.data), c=>c.charCodeAt(0)); const mime=j.mime||'application/octet-stream';
+    const mime=(r.rotate && mime0.startsWith('image/'))?'image/jpeg':mime0;
     const ext=mime==='application/pdf'?'pdf':mime.includes('png')?'png':mime.includes('webp')?'webp':'jpg';
+    let bin=Uint8Array.from(atob(j.data), c=>c.charCodeAt(0)); const mime0=j.mime||'application/octet-stream';
+    if(r.rotate && mime0.startsWith('image/')){ try{ const bmp=await createImageBitmap(new Blob([bin],{type:mime0})); const sw=r.rotate%180?bmp.height:bmp.width, sh=r.rotate%180?bmp.width:bmp.height; const c=document.createElement('canvas'); c.width=sw; c.height=sh; const g=c.getContext('2d'); g.translate(sw/2,sh/2); g.rotate(r.rotate*Math.PI/180); g.drawImage(bmp,-bmp.width/2,-bmp.height/2); const bl=await new Promise(res=>c.toBlob(res,'image/jpeg',0.9)); bin=new Uint8Array(await bl.arrayBuffer()); }catch(e){} }
     const f=new File([bin], `${safeName(r.title)} ${r.person?personName(r.person):''} ${fmtD(r.date)}.${ext}`.replace(/\s+/g,' '), {type:mime});
     if(navigator.canShare && !navigator.canShare({files:[f]})) throw new Error('nofiles');
     await navigator.share({files:[f], title:r.title});
@@ -370,6 +372,7 @@ async function removeRecord(id){
 }
 const ofCar = (r,id) => r.area==='car' && (r.object===id || (!r.object && CARS.length===1 && id===CARS[0].id));
 const photoUrl = r => r.localUrl || r.photoUrl || driveThumb(r.photo);
+const rotStyle = r => r.rotate ? ` style="transform:rotate(${r.rotate}deg)${r.rotate%180?';max-width:none;height:min(60vw,320px);width:auto;margin:40px auto;display:block':''}"` : '';
 
 // ===================== ПОИСК ВНУТРИ РАЗДЕЛА =====================
 function scope(){
@@ -497,7 +500,7 @@ function recordScreen(v){
   const fields = Object.entries(r.fields||{});
   const where = [r.person?personName(r.person):r.object?personName(r.object):AREAS.find(a=>a.id===r.area)?.name, r.section==='health'?'Здоровье':r.section==='docs'?'Документы':r.section==='insurance'?'Страховка':'', r.category].filter(Boolean).join(' → ');
   return {title:esc(r.title), sub:`${fmtD(r.date)}${r.org?' · '+esc(r.org):''}`, small:r.title.length>22, body:`
-  ${p?`<a class="photo-link" href="${p}" target="_blank" rel="noopener"><img class="photo" src="${p}" alt="Документ"></a>`:`<div class="photo ph">без фото</div>`}
+  ${p?`<a class="photo-link" href="${p}" target="_blank" rel="noopener"><img class="photo" src="${p}" alt="Документ"${rotStyle(r)}></a>`:`<div class="photo ph">без фото</div>`}
   ${!can&&(r.photo||r.file)?`<div class="btns"><button class="btn primary" data-share="${r.id}">Отправить</button><button class="btn" data-copy="${r.id}">Скопировать реквизиты</button></div>`:''}
   <div class="tags"><span class="tag c" style="--c:${r.section==='health'?catColor(r.category):(SECT_C[r.section]||AREAS.find(a=>a.id===r.area)?.c||'var(--ink2)')}">${esc(where||'не разложено')}</span>${r.file?`<a class="tag link" href="${esc(r.fileUrl||driveView(r.file))}" target="_blank" rel="noopener">Открыть PDF</a>`:''}${(r.extraFiles||[]).map(f=>`<a class="tag link" href="${esc(driveView(f.id))}" target="_blank" rel="noopener">${esc(f.name)}</a>`).join('')}${r.expires?`<span class="tag ${daysTo(r.expires)<30?'alarm':''}">до ${fmtD(r.expires)}</span>`:''}${r.amount!=null?`<span class="tag num">${fmtN(r.amount)} ₽</span>`:''}</div>
   ${busy?`<div class="note"><span class="spin"></span> Распознаю…</div>`: r.recogError?`<div class="note">Распознать не удалось. Заполните вручную.</div>`:''}
