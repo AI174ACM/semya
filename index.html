@@ -246,6 +246,7 @@ const today = new Date().toISOString().slice(0,10);
 const MON = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
 const fmtD = s => { if(!s) return ''; const [y,m,d]=String(s).split('-'); return d&&m ? `${d}.${m}.${y}` : s; };
 const fmtShort = s => { if(!s) return ''; const [y,m,d]=String(s).split('-'); return d&&m ? `${+d} ${MON[+m-1]}` : s; };
+const fmtShortY = s => { if(!s) return ''; const [y,m,d]=String(s).split('-'); return d&&m ? (y===today.slice(0,4) ? `${+d} ${MON[+m-1]}` : `${+d} ${MON[+m-1]}<br>${y}`) : s; };
 const fmtMY = s => { if(!s) return ''; const [y,m]=String(s).split('-'); return m ? `${MON[+m-1]} ${y}` : y; };
 const fmtN = n => (n==null||isNaN(n)) ? '—' : Number(n).toLocaleString('ru-RU',{maximumFractionDigits:3});
 const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -419,7 +420,7 @@ const fmtRub = n => (n==null||n===''||isNaN(n)||Number(n)===0) ? '' : Number(n).
 const payAll = () => S.payments.filter(p=>!S.payCat || p.category===S.payCat);
 const payTitle = p => { if(p.category==='ЖКХ' && p.kind==='квитанция') return 'Свет и мусор · '+(p.period||''); if(/НОВАТЭК/i.test(p.payee||'')) return 'Газ · НОВАТЭК'; if(p.kind==='выписка') return 'Выписка '+(p.payee||'')+(p.card?' *'+p.card:''); return p.payee || p.kind || 'Платёж'; };
 const paySub = p => [p.category, p.items || p.period || p.number || p.kind].filter(Boolean).join(' · ');
-function payRow(p){ return `<button class="row" data-payment="${p.id}">${dot(payC(p.category))}<div class="d num">${fmtShort(p.date)}</div><div class="t"><div class="n">${esc(payTitle(p))}</div><div class="s">${esc(paySub(p))}</div></div><div class="r"><b class="num">${fmtRub(p.amount)||''}</b>${p.files?.length?`<div>${plural(p.files.length,'файл','файла','файлов')}</div>`:''}</div></button>`; }
+function payRow(p){ return `<button class="row" data-payment="${p.id}">${dot(payC(p.category))}<div class="d num">${fmtShortY(p.date)}</div><div class="t"><div class="n">${esc(payTitle(p))}</div><div class="s">${esc(paySub(p))}</div></div><div class="r"><b class="num">${fmtRub(p.amount)||''}</b>${p.files?.length?`<div>${plural(p.files.length,'файл','файла','файлов')}</div>`:''}</div></button>`; }
 function paySum(ps){ return ps.reduce((a,p)=>a+(Number(p.amount)||0),0); }
 function payChips(){ const cats=[...new Set(S.payments.map(p=>p.category).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru'));
   return `<div class="tags">${cats.map(c=>`<button class="tag c ${S.payCat===c?'':''}" style="--c:${payC(c)};${S.payCat===c?'outline:2px solid currentColor':''}" data-paycat="${esc(c)}">${esc(c)}</button>`).join('')}${S.payCat?`<button class="tag" data-paycat="">Все</button>`:''}</div>`; }
@@ -435,12 +436,12 @@ function payeesBlock(ps, title){ const rows=payByPayee(ps); if(!rows.length) ret
 function payeeScreen(v){ const ps=S.payments.filter(p=>p.payee===v.payee).sort((a,b)=>String(b.date).localeCompare(String(a.date))); const x=payByPayee(ps)[0]||{};
   const years=[...new Set(ps.map(p=>String(p.date).slice(0,4)))].sort().reverse();
   return {title:v.payee, sub:`${plural(ps.length,'платёж','платежа','платежей')} · всего ${fmtRub(x.sum)}`, small:true, body:`
-  <div class="card"><div class="verdict"><div class="big num">${fmtRub(Math.round(x.perMonth||x.avg||0))}</div><div style="color:var(--ink2)">${x.year?'в месяц, по последним 12 месяцам':'в среднем за месяц с платежами'}</div></div>
+  <div class="card"><div class="verdict"><div class="big num" style="font-size:38px">${fmtRub(Math.round(x.perMonth||x.avg||0))}</div><div style="color:var(--ink2)">${x.year?'в месяц, по последним 12 месяцам':'в среднем за месяц с платежами'}</div></div>
   <dl class="kv">${years.map(y=>`<dt>${y}</dt><dd class="num">${fmtRub(paySum(ps.filter(p=>String(p.date).startsWith(y))))} · ${plural(ps.filter(p=>String(p.date).startsWith(y)).length,'платёж','платежа','платежей')}</dd>`).join('')}</dl></div>
   <div class="sect"><h2>Все платежи</h2><div class="list">${ps.map(payRow).join('')}</div></div>`}; }
 function payScreen(v){ const ps=payAll(); const years=[...new Set(ps.map(p=>String(p.date||'').slice(0,4)).filter(Boolean))].sort().reverse();
-  const unpaid=S.payments.filter(p=>/не оплач|долг/i.test(p.status||'')).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  const due=S.payments.filter(p=>p.due && p.due>=today).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+  const fresh=new Date(new Date(today).getTime()-45*86400000).toISOString().slice(0,10); const unpaid=ps.filter(p=>/не оплач|долг/i.test(p.status||'') && p.date>=fresh).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const due=ps.filter(p=>p.due && p.due>=today).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
   return {title:'Платежи', sub:S.payments.length?`${plural(S.payments.length,'запись','записи','записей')} из почты и бота`:'', body:`${paySearchBlock('Найти платёж: кому, за что, сумма')}${S.q?'':`
   ${unpaid.length?`<div class="sect"><h2>Не оплачено</h2><div class="list">${unpaid.slice(0,5).map(payRow).join('')}</div></div>`:''}
   ${due.length?`<div class="sect"><h2>Ближайшие сроки</h2><div class="list">${due.map(p=>`<button class="row" data-payment="${p.id}">${dot(payC(p.category))}<div class="d num">${fmtShort(p.due)}</div><div class="t"><div class="n">${esc(payTitle(p))}</div><div class="s">${esc(paySub(p))}</div></div><div class="r">${left(p.due)}</div></button>`).join('')}</div></div>`:''}
@@ -456,10 +457,10 @@ function payYearScreen(v){ const ps=payAll().filter(p=>String(p.date).startsWith
 function payMonthScreen(v){ const [y,m]=v.ym.split('-'); const ps=payAll().filter(p=>String(p.date).startsWith(v.ym)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   return {title:`${MONTHS_I[+m-1]} ${y}`, sub:`${plural(ps.length,'запись','записи','записей')} · ${fmtRub(paySum(ps))}${S.payCat?' · '+S.payCat:''}`, small:true, body:`${paySearchBlock('Найти в этом месяце')}${S.q?'':`${payChips()}<div class="list">${ps.map(payRow).join('')}</div>`}`}; }
 function paymentScreen(v){ const p=S.payments.find(x=>x.id===v.id); if(!p) return {title:'Платёж', body:emptyBlock('Нет записи','')};
-  const kv=[['Кому',p.payee],['Категория',p.category],['За что',p.items],['Период',p.period],['Адрес',p.address],['Лицевой счёт',p.account],['Номер',p.number],['Статус',p.status],['Срок',p.due?fmtD(p.due):''],['Пени',p.penalty?fmtRub(p.penalty):''],['Счётчик',p.meter],['ИНН',p.inn],['Откуда',p.source==='почта'?'письмо'+(p.subject?' «'+p.subject+'»':''):(p.source||'')],['Уверенность',p.confidence==='low'?'низкая, проверьте по файлу':'']].filter(x=>x[1]);
+  const kv=[['Кому',p.payee],['Категория',p.category],['За что',p.items],['Период',p.period],['Адрес',p.address],['Лицевой счёт',p.account],['Номер',p.number],['Статус',p.status],['Срок',p.due?fmtD(p.due):''],['Пени',p.penalty?fmtRub(p.penalty):''],['Счётчик',p.meter],['ИНН',p.inn],['Откуда',p.source==='почта'?'письмо'+(p.subject?' «'+p.subject.replace(/ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ/gi,'ООО').replace(/\s*\+\s*\(\d+\)\s*подарок.*$/i,'').slice(0,70)+'»':''):(p.source||'')],['Уверенность',p.confidence==='low'?'низкая, проверьте по файлу':'']].filter(x=>x[1]);
   const same=S.payments.filter(x=>x.id!==p.id && x.payee===p.payee).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8);
   return {title:payTitle(p), sub:fmtD(p.date), small:true, body:`
-  <div class="card"><div class="verdict"><div class="big num">${fmtRub(p.amount)||'—'}</div><div style="color:var(--ink2)">${esc(p.kind||'')}</div></div>
+  <div class="card"><div class="verdict"><div class="big num" style="font-size:38px">${fmtRub(p.amount)||'—'}</div><div style="color:var(--ink2)">${esc(p.kind||'')}</div></div>
   <dl class="kv">${kv.map(([k,val])=>`<dt>${k}</dt><dd>${esc(val)}</dd>`).join('')}</dl>
   ${p.files?.length?`<div class="tags">${p.files.map(f=>`<a class="tag link" href="${esc(f.url||driveView(f.id))}" target="_blank" rel="noopener">${esc(/\.pdf$/i.test(f.name)?'Открыть PDF':f.name.replace(/^\d{4}-\d{2}-\d{2} /,'').slice(0,40))}</a>`).join('')}</div>`:''}</div>
   ${same.length?`<div class="sect"><h2><button data-payee="${esc(p.payee)}" style="font:inherit">Та же услуга <small>${esc(p.payee)} ›</small></button></h2><div class="list">${same.map(payRow).join('')}</div></div>`:''}`}; }
@@ -489,7 +490,7 @@ function recRow(r, right=''){
   return `<button class="row" data-record="${r.id}"><div class="d num">${fmtShort(r.date)}</div><div class="t"><div class="n">${esc(r.title)}</div><div class="s">${esc(r.org||r.summary||'')}</div></div>${right?`<div class="r">${right}</div>`:''}<div class="th">${p?`<img src="${p}" alt="">`:I.doc}</div></button>`;
 }
 function emptyBlock(t, s){ return `<div class="empty"><div class="t">${t}</div><div class="s">${s}</div></div>`; }
-function inboxBar(){ const n=inbox().length; return n ? `<button class="inboxbar" data-go-inbox="1"><div style="flex:1"><b>Разобрать · ${n}</b><div class="s">новые фото ждут подтверждения</div></div>${I.chev}</button>` : ''; }
+function inboxBar(){ const n=inbox().length; return n ? `<button class="inboxbar" data-go-inbox="1"><div style="flex:1"><b>Разобрать · ${n}</b><div class="s">новые документы ждут подтверждения</div></div>${I.chev}</button>` : ''; }
 
 function homeScreen(){
   const cnt = a => filed().filter(r=>r.area===a).length;
@@ -500,7 +501,7 @@ function homeScreen(){
   <div class="people">${PEOPLE.map(p=>`<button class="pp" data-person="${p.id}">${avatar(p)}<div class="n">${p.name}</div></button>`).join('')}</div>
   <div class="list">
     ${(()=>{ const up=upcoming(); const n=up[0]; return `<button class="row" data-cal="1">${dot(SECT_C.cal)}<div class="t"><div class="n">Календарь</div><div class="s">${n?`${fmtShort(n.date)}${n.time?' '+n.time:''} · ${esc(n.title)}${n.person?' · '+personName(n.person):''}`:'приёмы, записи, напоминания'}</div></div>${up.length?`<div class="r"><b>${up.length}</b></div>`:''}${I.chev}</button>`; })()}
-    ${(()=>{ const n=S.payments.length; if(!n) return ''; const un=S.payments.filter(p=>/не оплач|долг/i.test(p.status||'')); const last=S.payments.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]; return `<button class="row" data-pay="1">${dot('var(--c-ins)')}<div class="t"><div class="n">Платежи</div><div class="s">${un.length?`не оплачено: ${esc(payTitle(un[0]))} · ${fmtRub(un[0].amount)}`:(last?`${fmtShort(last.date)} · ${esc(payTitle(last))}`:'квитанции, чеки, полисы')}</div></div><div class="r"><b>${n}</b></div>${I.chev}</button>`; })()}
+    ${(()=>{ const n=S.payments.length; if(!n) return ''; const fresh=new Date(new Date(today).getTime()-45*86400000).toISOString().slice(0,10); const un=S.payments.filter(p=>/не оплач|долг/i.test(p.status||'') && p.date>=fresh); const last=S.payments.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0]; return `<button class="row" data-pay="1">${dot('var(--c-ins)')}<div class="t"><div class="n">Платежи</div><div class="s">${un.length?`не оплачено: ${esc(payTitle(un[0]))} · ${fmtRub(un[0].amount)}`:(last?`${fmtShort(last.date)} · ${esc(payTitle(last))}`:'квитанции, чеки, полисы')}</div></div><div class="r"><b>${n}</b></div>${I.chev}</button>`; })()}
     ${AREAS.map(a=>`<button class="row" data-area="${a.id}">${dot(a.c)}<div class="t"><div class="n">${a.name}</div><div class="s">${a.about}</div></div>${cnt(a.id)?`<div class="r"><b>${cnt(a.id)}</b></div>`:''}${I.chev}</button>`).join('')}
   </div>
   <div class="status">${!KEY ? (matchMedia('(display-mode: standalone)').matches ? 'Значок добавлен без ключа. Удалите его и добавьте на экран «Домой» заново, открыв личную ссылку в Safari.' : 'Откройте приложение по своей личной ссылке.') : S.caps.ready ? (S.offline ? 'Нет связи: показано сохранённое на телефоне' : 'База подключена, фото распознаются') : 'Подключаю базу…'}</div>`}`};
