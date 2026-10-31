@@ -831,10 +831,11 @@ $('#fab').addEventListener('click', ()=>{ S.sheet='add'; paintOverlays(); });
   app.addEventListener('touchend', end); app.addEventListener('touchcancel', end);
 })();
 /* Потянуть страницу вниз — обновить всё */
-(function(){ const sc=$('#screen'); const ptr=document.createElement('div'); ptr.id='ptr'; $('#app').appendChild(ptr); let y0=0, pull=0, on=false, fired=false;
-  sc.addEventListener('touchstart', e=>{ if(S.sheet||sc.scrollTop>0){ on=false; return; } y0=e.touches[0].clientY; pull=0; on=true; fired=false; }, {passive:true});
-  sc.addEventListener('touchmove', e=>{ if(!on||fired) return; pull=e.touches[0].clientY-y0; if(pull<10){ ptr.classList.remove('on'); return; } ptr.classList.add('on'); ptr.textContent = pull>90 ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить'; }, {passive:true});
-  const end=()=>{ if(!on) return; on=false; if(pull>90 && !fired){ fired=true; ptr.textContent='Обновляю…'; load(true).then(()=>{ ptr.classList.remove('on'); if(!S.offline) toast('Обновлено'); }); } else ptr.classList.remove('on'); };
+(function(){ const sc=$('#screen'); const ptr=document.createElement('div'); ptr.id='ptr'; $('#app').appendChild(ptr); let y0=0, x0=0, pull=0, on=false, fired=false;
+  const atTop=()=>window.scrollY<=0 && sc.scrollTop<=0;
+  sc.addEventListener('touchstart', e=>{ on=!S.sheet && atTop() && e.touches.length===1 && !e.target.closest('.pages,.tags,.chart'); pull=0; fired=false; if(on){ y0=e.touches[0].clientY; x0=e.touches[0].clientX; } }, {passive:true});
+  sc.addEventListener('touchmove', e=>{ if(!on||fired) return; pull=e.touches[0].clientY-y0; const side=Math.abs(e.touches[0].clientX-x0); if(!atTop()||pull<0||side>pull){ on=false; pull=0; ptr.classList.remove('on'); return; } if(pull<40){ ptr.classList.remove('on'); return; } ptr.classList.add('on'); ptr.textContent = pull>120 ? 'Отпустите, чтобы обновить' : 'Потяните, чтобы обновить'; }, {passive:true});
+  const end=()=>{ if(!on) return; on=false; if(pull>120 && !fired){ fired=true; ptr.textContent='Обновляю…'; load(true).then(()=>{ ptr.classList.remove('on'); if(!S.offline) toast('Обновлено'); }); } else ptr.classList.remove('on'); };
   sc.addEventListener('touchend', end); sc.addEventListener('touchcancel', end);
 })();
 render();
